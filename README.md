@@ -106,6 +106,9 @@ streamlit run app/Home.py
 | Salary Estimator | Estimate salary by role + seniority + skills |
 | Skills Gap | Input your skills, see which roles match and what to learn |
 | AI Skills Deep Dive | 11-category AI skills taxonomy — surface vs deep AI demand |
+| Skills Salary Premium | Which skills pay more? Premium analysis by skill and role |
+| Learning Roadmap | Skill progression by seniority, co-occurrence paths, role-based learning |
+| Market Pulse | AI vs non-AI market comparison, skill rarity index, industry adoption |
 
 ## Deploy on Streamlit Community Cloud
 
