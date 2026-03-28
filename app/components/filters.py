@@ -7,7 +7,38 @@ ROLE_CATEGORIES = [
     "Research Scientist", "BI Analyst", "AI Product Manager", "Other",
 ]
 
+# Default focus: data, analytics, and BI roles
+DEFAULT_ROLES = [
+    "Data Scientist", "Data Analyst", "Data Engineer",
+    "BI Analyst", "Analytics Manager",
+]
+
 SENIORITY_LEVELS = ["Junior", "Mid", "Senior", "Lead", "Principal", "Director"]
+
+
+def render_role_scope(key: str = "role_scope") -> list[str]:
+    """Render a role scope toggle. Returns list of selected role categories.
+
+    Defaults to data/analytics roles. User can switch to 'All Roles'
+    or customize via multiselect.
+    """
+    preset = st.radio(
+        "Role focus",
+        ["Data & Analytics", "All Roles", "Custom"],
+        horizontal=True,
+        key=f"{key}_preset",
+    )
+    if preset == "Data & Analytics":
+        return DEFAULT_ROLES
+    elif preset == "All Roles":
+        return ROLE_CATEGORIES
+    else:
+        return st.multiselect(
+            "Select roles",
+            ROLE_CATEGORIES,
+            default=DEFAULT_ROLES,
+            key=f"{key}_custom",
+        )
 
 
 def render_job_filters() -> dict:

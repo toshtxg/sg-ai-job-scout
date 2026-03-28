@@ -7,8 +7,11 @@ from app.components.charts import (
     create_sunburst_chart,
     create_skills_heatmap,
 )
+from app.components.filters import render_role_scope
 
 st.header("Role Taxonomy & Skills")
+
+selected_roles = render_role_scope(key="role_taxonomy")
 
 
 @st.cache_data(ttl=3600)
@@ -31,7 +34,8 @@ def load_classified_data():
     return all_data
 
 
-data = load_classified_data()
+_all_data = load_classified_data()
+data = [r for r in _all_data if not selected_roles or r.get("role_category") in selected_roles]
 
 if not data:
     st.info(

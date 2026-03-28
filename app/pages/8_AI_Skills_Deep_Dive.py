@@ -3,6 +3,7 @@ import plotly.graph_objects as go
 from collections import Counter
 
 from app.utils.supabase_client import get_client
+from app.components.filters import render_role_scope
 from pipeline.ai_skills_analyzer import (
     analyze_all_listings,
     AI_SKILLS_TAXONOMY,
@@ -17,6 +18,8 @@ st.caption(
     "What AI skills are Singapore employers actually asking for? "
     "Not just 'AI' broadly — the specific capabilities, tools, and frameworks."
 )
+
+selected_roles = render_role_scope(key="ai_deep_dive")
 
 COLORS = {
     "AI Literacy & Augmentation": "#0ea5e9",
@@ -69,11 +72,17 @@ def load_and_analyze():
     return analyze_all_listings(all_data), all_data
 
 
-analysis, all_data = load_and_analyze()
+_full_analysis, _full_data = load_and_analyze()
+
+# Apply role filter
+all_data = [r for r in _full_data if not selected_roles or r.get("role_category") in selected_roles]
 
 if not all_data:
     st.info("No classified data yet. Run the pipeline first.")
     st.stop()
+
+# Re-analyze with filtered data
+analysis = analyze_all_listings(all_data)
 
 total = analysis["total_analyzed"]
 with_ai = analysis["listings_with_ai"]

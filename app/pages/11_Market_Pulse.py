@@ -6,12 +6,15 @@ from collections import Counter, defaultdict
 
 from app.utils.supabase_client import get_client
 from app.components.charts import LAYOUT_DEFAULTS, ROLE_COLORS
+from app.components.filters import render_role_scope
 from pipeline.ai_skills_analyzer import AI_SKILLS_TAXONOMY, analyze_all_listings
 
 st.header("Market Pulse")
 st.caption(
     "What's the overall AI job market landscape? Where are the opportunities?"
 )
+
+selected_roles = render_role_scope(key="market_pulse")
 
 
 # ---------------------------------------------------------------------------
@@ -44,7 +47,8 @@ def load_market_data():
     return all_rows
 
 
-raw_data = load_market_data()
+_all_market_data = load_market_data()
+raw_data = [r for r in _all_market_data if not selected_roles or r.get("role_category") in selected_roles]
 
 if not raw_data:
     st.info(

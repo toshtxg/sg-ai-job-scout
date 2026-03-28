@@ -5,6 +5,7 @@ from collections import Counter, defaultdict
 
 from app.utils.supabase_client import get_client
 from app.components.charts import LAYOUT_DEFAULTS, ROLE_COLORS
+from app.components.filters import render_role_scope
 from pipeline.ai_skills_analyzer import AI_SKILLS_TAXONOMY, SKILL_TIERS
 
 st.header("Learning Roadmap")
@@ -13,6 +14,8 @@ st.caption(
     "Explore skill progressions by seniority, co-occurrence networks, role-based "
     "learning paths, and the AI skills ladder."
 )
+
+selected_roles = render_role_scope(key="learning_roadmap")
 
 # ---------------------------------------------------------------------------
 # Data loading
@@ -42,7 +45,8 @@ def load_listings():
     return all_rows
 
 
-listings = load_listings()
+_all_listings = load_listings()
+listings = [r for r in _all_listings if not selected_roles or r.get("role_category") in selected_roles]
 
 if not listings:
     st.info(

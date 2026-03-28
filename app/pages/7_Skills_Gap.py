@@ -3,6 +3,7 @@ import plotly.graph_objects as go
 from collections import Counter
 
 from app.utils.supabase_client import get_client
+from app.components.filters import render_role_scope
 
 st.header("Skills Gap Analyzer")
 
@@ -11,6 +12,8 @@ st.markdown(
     "which skills you're missing, and what to learn next to maximise your "
     "job prospects."
 )
+
+selected_roles = render_role_scope(key="skills_gap")
 
 LAYOUT_DEFAULTS = dict(
     template="plotly_dark",
@@ -50,7 +53,8 @@ def load_listings():
     return all_rows
 
 
-listings = load_listings()
+_all_listings = load_listings()
+listings = [r for r in _all_listings if not selected_roles or r.get("role_category") in selected_roles]
 
 if not listings:
     st.info(

@@ -6,9 +6,12 @@ import plotly.graph_objects as go
 import plotly.express as px
 
 from app.utils.supabase_client import get_client
+from app.components.filters import render_role_scope
 
 st.header("Company Leaderboard")
 st.markdown("Which companies hire the most AI talent in Singapore?")
+
+selected_roles = render_role_scope(key="company_leaderboard")
 
 
 @st.cache_data(ttl=3600)
@@ -36,7 +39,8 @@ def load_company_data():
     return all_rows
 
 
-data = load_company_data()
+_all_company_data = load_company_data()
+data = [r for r in _all_company_data if not selected_roles or r.get("role_category") in selected_roles]
 
 if not data:
     st.info(

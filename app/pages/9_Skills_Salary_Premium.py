@@ -7,9 +7,12 @@ import plotly.graph_objects as go
 
 from app.utils.supabase_client import get_client
 from app.components.charts import LAYOUT_DEFAULTS, ROLE_COLORS
+from app.components.filters import render_role_scope
 
 st.header("Skills Salary Premium")
 st.markdown("Which specific skills are associated with higher salaries?")
+
+selected_roles = render_role_scope(key="salary_premium")
 
 
 # ---------------------------------------------------------------------------
@@ -58,13 +61,16 @@ if not raw_data:
 
 rows = []
 for row in raw_data:
+    role = row.get("role_category", "Other")
+    if selected_roles and role not in selected_roles:
+        continue
     raw = row.get("raw_listings") or {}
     salary_max = raw.get("salary_max")
     if salary_max is None:
         continue
     rows.append(
         {
-            "role_category": row.get("role_category", "Other"),
+            "role_category": role,
             "seniority_level": row.get("seniority_level", "Mid"),
             "technical_skills": row.get("technical_skills") or [],
             "title": raw.get("title", ""),
