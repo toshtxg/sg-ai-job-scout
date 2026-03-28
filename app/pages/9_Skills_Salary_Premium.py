@@ -97,7 +97,7 @@ for skills_list in df["technical_skills"]:
 # Overall baseline: median salary_max across ALL salary-bearing listings
 baseline_median = float(np.median(df["salary_max"]))
 
-MIN_LISTINGS = 5
+MIN_LISTINGS = 10
 
 premium_rows = []
 for skill, count in skill_counter.items():

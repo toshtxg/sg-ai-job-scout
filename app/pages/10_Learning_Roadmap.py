@@ -383,8 +383,11 @@ if skill_counts and total_at_target > 0:
                         textposition="outside",
                     )
                 )
+                tier_layout = {
+                    k: v for k, v in LAYOUT_DEFAULTS.items() if k != "margin"
+                }
                 fig.update_layout(
-                    **LAYOUT_DEFAULTS,
+                    **tier_layout,
                     margin=dict(l=10, r=40, t=10, b=10),
                     height=max(200, len(names) * 28),
                     xaxis_title="% of listings",

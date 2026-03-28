@@ -180,8 +180,8 @@ for _, listing in df.iterrows():
         if pd.notna(salary):
             skill_stats[skill]["salaries"].append(salary)
 
-# Filter to skills appearing in >= 3 listings
-MIN_LISTINGS = 3
+# Filter to skills appearing in >= 5 listings, keep top 40 by demand
+MIN_LISTINGS = 5
 filtered_skills = {
     k: v for k, v in skill_stats.items() if v["count"] >= MIN_LISTINGS
 }
@@ -205,6 +205,8 @@ if filtered_skills:
         )
 
     sdf = pd.DataFrame(scatter_data)
+    # Keep only top 40 skills by demand to reduce clutter
+    sdf = sdf.nlargest(40, "demand").reset_index(drop=True)
 
     # Classify into quadrants
     median_demand = sdf["demand"].median()
@@ -231,6 +233,9 @@ if filtered_skills:
         "Niche (specialist)": "#8b5cf6",
     }
 
+    # Only label the top 15 skills to avoid overlap
+    top_labeled = set(sdf.nlargest(15, "demand")["skill"])
+
     fig = go.Figure()
     for quadrant, color in quadrant_colors.items():
         mask = sdf["quadrant"] == quadrant
@@ -241,9 +246,11 @@ if filtered_skills:
         max_salary = sdf["avg_salary"].max() if sdf["avg_salary"].max() > 0 else 1
         sizes = (
             subset["avg_salary"].apply(
-                lambda s: max(8, s / max_salary * 40) if s > 0 else 8
+                lambda s: max(10, s / max_salary * 45) if s > 0 else 10
             )
         )
+        # Only show text for top skills
+        labels = subset["skill"].apply(lambda s: s if s in top_labeled else "")
         fig.add_trace(
             go.Scatter(
                 x=subset["companies"],
@@ -256,11 +263,12 @@ if filtered_skills:
                     opacity=0.8,
                     line=dict(width=1, color="#fafafa"),
                 ),
-                text=subset["skill"],
+                text=labels,
                 textposition="top center",
-                textfont=dict(size=9, color="#cbd5e1"),
+                textfont=dict(size=10, color="#e2e8f0"),
+                hovertext=subset["skill"],
                 hovertemplate=(
-                    "<b>%{text}</b><br>"
+                    "<b>%{hovertext}</b><br>"
                     "Listings: %{y}<br>"
                     "Companies: %{x}<br>"
                     "Avg Salary: $%{customdata:,.0f}/mo"
@@ -353,7 +361,9 @@ for industry, group in df.groupby("industry"):
         }
     )
 
-ind_df = pd.DataFrame(industry_stats).sort_values("total", ascending=True)
+ind_df = pd.DataFrame(industry_stats).sort_values("total", ascending=False)
+# Keep only top 15 industries to avoid oversized chart
+ind_df = ind_df.head(15).sort_values("total", ascending=True)
 
 if not ind_df.empty:
     fig = go.Figure()
@@ -384,7 +394,7 @@ if not ind_df.empty:
         title="Total vs AI/ML Listings by Industry",
         xaxis_title="Number of Listings",
         barmode="group",
-        height=max(400, len(ind_df) * 45 + 80),
+        height=min(600, max(400, len(ind_df) * 40 + 80)),
         legend=dict(
             orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5
         ),
