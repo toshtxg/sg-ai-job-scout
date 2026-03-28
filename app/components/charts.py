@@ -104,38 +104,40 @@ def create_volume_over_time_chart(snapshots: list[dict]) -> go.Figure:
     if not snapshots or len(snapshots) < 1:
         return _empty_figure("Need multiple pipeline runs to show trends")
 
-    dates = [s["snapshot_date"] for s in snapshots]
+    # Ensure dates are strings in YYYY-MM-DD format
+    dates = [str(s["snapshot_date"])[:10] for s in snapshots]
     totals = [s.get("total_listings", 0) for s in snapshots]
     new_counts = [s.get("new_listings_count", 0) for s in snapshots]
 
     fig = go.Figure()
     fig.add_trace(
-        go.Scatter(
+        go.Bar(
             x=dates,
             y=totals,
             name="Total Listings",
-            mode="lines+markers",
-            line=dict(color="#0ea5e9", width=3),
-            marker=dict(size=8),
+            marker_color="#0ea5e9",
+            text=totals,
+            textposition="outside",
         )
     )
     fig.add_trace(
-        go.Scatter(
+        go.Bar(
             x=dates,
             y=new_counts,
             name="New This Week",
-            mode="lines+markers",
-            line=dict(color="#14b8a6", width=2, dash="dash"),
-            marker=dict(size=6),
+            marker_color="#14b8a6",
+            text=new_counts,
+            textposition="outside",
         )
     )
     fig.update_layout(
         **LAYOUT_DEFAULTS,
-        title="Listing Volume Over Time",
         xaxis_title="Date",
         yaxis_title="Count",
         height=350,
-        legend=dict(orientation="h", yanchor="bottom", y=1.02),
+        barmode="group",
+        xaxis=dict(type="category", dtick=1),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
     )
     return fig
 
@@ -204,7 +206,7 @@ def create_trends_by_role_chart(snapshots: list[dict]) -> go.Figure:
         for s in snapshots:
             by_role = s.get("listings_by_role") or {}
             if role in by_role:
-                dates.append(s["snapshot_date"])
+                dates.append(str(s["snapshot_date"])[:10])
                 counts.append(by_role[role])
         if dates:
             fig.add_trace(
@@ -223,6 +225,7 @@ def create_trends_by_role_chart(snapshots: list[dict]) -> go.Figure:
         xaxis_title="Date",
         yaxis_title="Count",
         height=400,
+        xaxis=dict(type="category"),
         legend=dict(orientation="h", yanchor="bottom", y=1.02),
     )
     return fig
