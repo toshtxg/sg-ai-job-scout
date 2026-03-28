@@ -65,16 +65,16 @@ st.markdown(
 st.markdown("### Navigate")
 col1, col2, col3 = st.columns(3)
 with col1:
-    st.page_link("pages/1_Dashboard.py", label="\U0001f4ca Dashboard", use_container_width=True)
-    st.page_link("pages/4_Trends.py", label="\U0001f4c8 Trends", use_container_width=True)
-    st.page_link("pages/7_Skills_Gap.py", label="\U0001f9e9 Skills Gap Analyzer", use_container_width=True)
+    st.page_link("pages/1_Dashboard.py", label="\U0001f4ca Dashboard", width="stretch")
+    st.page_link("pages/4_Trends.py", label="\U0001f4c8 Trends", width="stretch")
+    st.page_link("pages/7_Skills_Gap.py", label="\U0001f9e9 Skills Gap Analyzer", width="stretch")
 with col2:
-    st.page_link("pages/2_Job_Explorer.py", label="\U0001f50e Job Explorer", use_container_width=True)
-    st.page_link("pages/5_Company_Leaderboard.py", label="\U0001f3c6 Company Leaderboard", use_container_width=True)
-    st.page_link("pages/8_AI_Skills_Deep_Dive.py", label="\U0001f916 AI Skills Deep Dive", use_container_width=True)
+    st.page_link("pages/2_Job_Explorer.py", label="\U0001f50e Job Explorer", width="stretch")
+    st.page_link("pages/5_Company_Leaderboard.py", label="\U0001f3c6 Company Leaderboard", width="stretch")
+    st.page_link("pages/8_AI_Skills_Deep_Dive.py", label="\U0001f916 AI Skills Deep Dive", width="stretch")
 with col3:
-    st.page_link("pages/3_Role_Taxonomy.py", label="\U0001f9e0 Role Taxonomy", use_container_width=True)
-    st.page_link("pages/6_Salary_Estimator.py", label="\U0001f4b0 Salary Estimator", use_container_width=True)
+    st.page_link("pages/3_Role_Taxonomy.py", label="\U0001f9e0 Role Taxonomy", width="stretch")
+    st.page_link("pages/6_Salary_Estimator.py", label="\U0001f4b0 Salary Estimator", width="stretch")
 
 st.markdown("---")
 st.markdown(

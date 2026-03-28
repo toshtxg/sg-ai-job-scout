@@ -306,7 +306,7 @@ else:
             xaxis_tickangle=-35,
         )
 
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     # ------------------------------------------------------------------
     # Table of comparable listings
@@ -329,7 +329,7 @@ else:
 
     st.dataframe(
         display_df,
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
 
@@ -369,7 +369,7 @@ for role in similar_roles:
 if similar_stats:
     st.dataframe(
         pd.DataFrame(similar_stats),
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
 else:

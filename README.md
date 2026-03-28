@@ -1,6 +1,6 @@
 # SG AI Job Market Scout
 
-A Streamlit dashboard that tracks and analyzes Singapore's AI, data science, and analytics job market. Job listings are scraped from MyCareersFuture.gov.sg, classified using GPT-5.4-mini, and presented through interactive visualizations.
+A Streamlit dashboard that tracks and analyzes Singapore's AI, data science, and analytics job market. Job listings are sourced from [MyCareersFuture.gov.sg](https://www.mycareersfuture.gov.sg/), classified using GPT-5.4-mini, and presented through interactive visualizations.
 
 ![Python](https://img.shields.io/badge/Python-3.11+-blue)
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.30+-red)
@@ -26,9 +26,7 @@ sg-ai-job-scout/
 ├── pipeline/                     # Data pipeline
 │   ├── scrapers/                 # Job site scrapers
 │   │   ├── base_scraper.py       # Abstract base with backoff
-│   │   ├── mycareersfuture.py    # MCF API scraper (primary)
-│   │   ├── nodeflair.py          # Stub (CloudFlare-protected)
-│   │   └── jobstreet.py          # Stub (CloudFlare-protected)
+│   │   └── mycareersfuture.py    # MCF API scraper
 │   ├── classifier.py             # GPT-5.4-mini classification
 │   ├── ai_skills_analyzer.py     # 281-keyword AI skills taxonomy
 │   ├── skills_normalizer.py      # Canonical skill name mapping
@@ -42,7 +40,7 @@ sg-ai-job-scout/
 └── .env.example
 ```
 
-**Data flow:** Scrapers → Supabase (raw_listings) → GPT-5.4-mini classifier → Supabase (classified_listings) → Snapshot aggregation → Streamlit dashboard
+**Data flow:** MyCareersFuture API → Supabase (raw_listings) → GPT-5.4-mini classifier → Supabase (classified_listings) → Snapshot aggregation → Streamlit dashboard
 
 ## Tech Stack
 
@@ -52,7 +50,7 @@ sg-ai-job-scout/
 | Database | Supabase (PostgreSQL) |
 | AI Classification | OpenAI GPT-5.4-mini |
 | AI Skills Analysis | 281-keyword taxonomy across 11 categories |
-| Scraping | Requests, BeautifulSoup4 |
+| Data Source | MyCareersFuture.gov.sg (JSON API) |
 | Automation | GitHub Actions (cron) |
 | Language | Python 3.11+ |
 
@@ -88,7 +86,7 @@ Or create a `.env` file (see `.env.example`).
 python -m pipeline.run_pipeline
 ```
 
-This scrapes jobs from MyCareersFuture.gov.sg, classifies them with GPT-5.4-mini, and generates a market snapshot. Subsequent runs only scrape new listings and classify unprocessed ones.
+This scrapes jobs from the MyCareersFuture.gov.sg API, classifies them with GPT-5.4-mini, and generates a market snapshot. Subsequent runs only scrape new listings and classify unprocessed ones.
 
 ### 5. Launch the dashboard
 
@@ -133,15 +131,13 @@ The pipeline runs automatically on Monday and Thursday at 2 AM UTC. To enable:
 
 You can also trigger a manual run from Actions → Scrape & Classify → Run workflow.
 
-## Data Sources
+## Data Source
 
-- **MyCareersFuture.gov.sg** — Singapore government job portal (primary source, JSON API)
-- **NodeFlair** — Tech job platform (CloudFlare-protected, stub scraper)
-- **JobStreet SG** — Regional job platform (CloudFlare-protected, stub scraper)
+- **[MyCareersFuture.gov.sg](https://www.mycareersfuture.gov.sg/)** — Singapore government job portal (JSON API)
 
 ## Disclaimer
 
-This project is for educational and research purposes. Job listing data is sourced from public job portals. The AI classification is approximate and may not perfectly categorize every listing. Salary data reflects what is posted and may not represent actual compensation.
+This project is for educational and research purposes. Job listing data is sourced from the MyCareersFuture.gov.sg public API. The AI classification is approximate and may not perfectly categorize every listing. Salary data reflects what is posted and may not represent actual compensation.
 
 ## License
 

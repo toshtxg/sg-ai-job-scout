@@ -14,8 +14,6 @@ load_dotenv()
 from supabase import create_client
 
 from pipeline.scrapers.mycareersfuture import MyCareersFutureScraper
-from pipeline.scrapers.nodeflair import NodeFlairScraper
-from pipeline.scrapers.jobstreet import JobStreetScraper
 from pipeline.classifier import classify_unprocessed
 from pipeline.snapshot import generate_snapshot
 
@@ -130,8 +128,6 @@ def main():
     logger.info("--- PHASE A: Scraping ---")
     scrapers = [
         MyCareersFutureScraper(),
-        NodeFlairScraper(),
-        JobStreetScraper(),
     ]
     total_stored = 0
     for scraper in scrapers:

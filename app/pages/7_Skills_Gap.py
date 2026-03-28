@@ -298,7 +298,7 @@ if selected_role:
             showlegend=False,
         )
 
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
 
 st.markdown("---")
@@ -399,7 +399,7 @@ else:
         showlegend=False,
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     # Also show as a table for clarity
     for rank, (skill, gain) in enumerate(top_recommendations, 1):

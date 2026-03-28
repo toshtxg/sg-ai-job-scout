@@ -37,13 +37,13 @@ if not snapshots:
 # --- Listing Volume Over Time ---
 st.subheader("Listing Volume Over Time")
 fig = create_volume_over_time_chart(snapshots)
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, width="stretch")
 
 # --- Listings by Role Over Time ---
 st.subheader("Listings by Role Over Time")
 if len(snapshots) >= 2:
     fig = create_trends_by_role_chart(snapshots)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 else:
     st.info(
         "Trends by role will appear after multiple pipeline runs. "
@@ -98,7 +98,7 @@ if len(snapshots) >= 2:
         yaxis_title="SGD/month",
         height=400,
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 else:
     st.info("Salary trends will appear after multiple pipeline runs.")
 
@@ -109,7 +109,7 @@ if classified:
         row.get("industry", "Unknown") for row in classified
     )
     fig = create_industry_pie_chart(dict(industry_counter.most_common(12)))
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 # --- Auto-generated Insights ---
 st.subheader("Key Insights")

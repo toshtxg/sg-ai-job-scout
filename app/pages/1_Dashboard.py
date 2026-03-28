@@ -62,16 +62,16 @@ st.markdown("")
 col1, col2 = st.columns(2)
 with col1:
     fig = create_listings_by_role_chart(listings_by_role)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 with col2:
     avg_salary = latest.get("avg_salary_by_role") or {}
     fig = create_salary_comparison_chart(avg_salary)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 # Volume over time — full width
 fig = create_volume_over_time_chart(all_snapshots)
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, width="stretch")
 
 # Top skills detail
 if top_skills:

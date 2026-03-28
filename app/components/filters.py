@@ -24,7 +24,7 @@ def render_job_filters() -> dict:
         "Skills Search", placeholder="e.g. Python, TensorFlow"
     )
     filters["source"] = st.multiselect(
-        "Source", ["mycareersfuture", "nodeflair", "jobstreet"]
+        "Source", ["mycareersfuture"]
     )
     filters["requires_ai_ml"] = st.checkbox("Requires AI/ML only", value=False)
 

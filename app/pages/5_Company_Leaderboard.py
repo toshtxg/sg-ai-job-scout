@@ -137,7 +137,7 @@ display_df = company_stats[
 
 st.dataframe(
     display_df,
-    use_container_width=True,
+    width="stretch",
     hide_index=True,
     height=min(len(display_df) * 35 + 40, 600),
 )
@@ -169,7 +169,7 @@ fig.update_layout(
     yaxis=dict(autorange="reversed"),
     xaxis_title="Number of Listings",
 )
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, width="stretch")
 
 # ---------------------------------------------------------------------------
 # Company Profile — select a company for deep-dive
@@ -216,7 +216,7 @@ if selected_company:
         }
     )
     roles_display = roles_display.sort_values("Posted", ascending=False)
-    st.dataframe(roles_display, use_container_width=True, hide_index=True)
+    st.dataframe(roles_display, width="stretch", hide_index=True)
 
     # --- Salary Distribution ---
     st.markdown("#### Salary Distribution")
@@ -251,7 +251,7 @@ if selected_company:
             height=300,
             showlegend=True,
         )
-        st.plotly_chart(fig_salary, use_container_width=True)
+        st.plotly_chart(fig_salary, width="stretch")
 
     # --- Most Requested Skills ---
     st.markdown("#### Most Requested Skills")
@@ -282,7 +282,7 @@ if selected_company:
             yaxis=dict(autorange="reversed"),
             xaxis_title="Number of Listings",
         )
-        st.plotly_chart(fig_skills, use_container_width=True)
+        st.plotly_chart(fig_skills, width="stretch")
     else:
         st.info("No skill data available for this company.")
 
@@ -314,6 +314,6 @@ if selected_company:
             height=400,
             showlegend=True,
         )
-        st.plotly_chart(fig_roles, use_container_width=True)
+        st.plotly_chart(fig_roles, width="stretch")
     else:
         st.info("No role category data available for this company.")

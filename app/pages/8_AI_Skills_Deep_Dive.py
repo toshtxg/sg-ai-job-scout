@@ -120,7 +120,7 @@ if cat_counts:
         height=max(400, len(cats) * 40),
         xaxis_title="Number of Listings",
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 # ── Tier Breakdown ──
 st.markdown("### Skills by Career Tier")
@@ -177,7 +177,7 @@ if keywords_for_cat:
         xaxis_title="Mentions",
         title=f"Top keywords for {selected_cat}",
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     # Context
     cat_count = cat_counts.get(selected_cat, 0)
@@ -240,7 +240,7 @@ if role_ai_matrix:
         height=max(400, len(roles) * 35 + 100),
         xaxis_tickangle=-45,
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 # ── The Key Question ──
 st.markdown("### The Key Question: Surface-Level vs Deep AI Skills")
@@ -303,7 +303,7 @@ fig.update_layout(
     margin=dict(l=20, r=20, t=10, b=20),
     showlegend=False,
 )
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, width="stretch")
 
 # ── Methodology ──
 with st.expander("Methodology"):

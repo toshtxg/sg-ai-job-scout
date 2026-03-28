@@ -59,7 +59,7 @@ sunburst_counts = (
 )
 
 fig = create_sunburst_chart(sunburst_counts)
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, width="stretch")
 
 # --- Top Skills Bar Chart ---
 st.subheader("Top Technical Skills")
@@ -94,7 +94,7 @@ if skill_counter:
         height=max(400, top_n * 25),
         yaxis=dict(autorange="reversed"),
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 # --- Skills Heatmap: Role vs Top Skills ---
 st.subheader("Skills Heatmap by Role")
@@ -120,7 +120,7 @@ if top_global_skills and role_skill_counts:
     heatmap_df = heatmap_df.reindex(columns=top_global_skills)
 
     fig = create_skills_heatmap(heatmap_df)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 # --- Skills Co-occurrence ---
 st.subheader("Skills Co-occurrence")
