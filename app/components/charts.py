@@ -18,18 +18,22 @@ LAYOUT_DEFAULTS = dict(
 
 
 def create_listings_by_role_chart(listings_by_role: dict) -> go.Figure:
-    """Vertical bar chart of listings count by role category."""
+    """Horizontal bar chart of listings count by role category, sorted descending."""
     if not listings_by_role:
         return _empty_figure("No role data available")
 
-    roles = list(listings_by_role.keys())
-    counts = list(listings_by_role.values())
+    # Sort by count descending
+    sorted_items = sorted(listings_by_role.items(), key=lambda x: x[1])
+    roles = [r for r, _ in sorted_items]
+    counts = [c for _, c in sorted_items]
+    colors = [ROLE_COLORS[i % len(ROLE_COLORS)] for i in range(len(roles))]
 
     fig = go.Figure(
         go.Bar(
-            x=roles,
-            y=counts,
-            marker_color=ROLE_COLORS[: len(roles)],
+            y=roles,
+            x=counts,
+            orientation="h",
+            marker_color=colors,
             text=counts,
             textposition="outside",
         )
@@ -37,10 +41,9 @@ def create_listings_by_role_chart(listings_by_role: dict) -> go.Figure:
     fig.update_layout(
         **LAYOUT_DEFAULTS,
         title="Listings by Role",
-        xaxis_title="",
-        yaxis_title="Count",
-        xaxis_tickangle=-35,
-        height=400,
+        xaxis_title="Count",
+        yaxis_title="",
+        height=max(350, len(roles) * 30 + 80),
     )
     return fig
 

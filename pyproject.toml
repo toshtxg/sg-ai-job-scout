@@ -1,0 +1,22 @@
+[project]
+name = "sg-ai-job-scout"
+version = "0.1.0"
+description = "Singapore AI Job Market Scout — scrape, classify, and visualize AI/data job listings"
+requires-python = ">=3.11"
+dependencies = [
+    "streamlit>=1.30.0",
+    "supabase>=2.0.0",
+    "openai>=1.30.0",
+    "requests>=2.31.0",
+    "beautifulsoup4>=4.12.0",
+    "plotly>=5.18.0",
+    "pandas>=2.1.0",
+    "python-dotenv>=1.0.0",
+]
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*", "pipeline*"]

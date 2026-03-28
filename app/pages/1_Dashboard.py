@@ -1,8 +1,3 @@
-import sys
-import os
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
-
 import streamlit as st
 
 from app.utils.supabase_client import get_client
@@ -85,6 +80,60 @@ if top_skills:
     for i, s in enumerate(top_skills[:15]):
         with cols[i % 5]:
             st.metric(s["skill"], s["count"])
+
+# AI Market Summary
+st.markdown("### AI Market Summary")
+
+
+@st.cache_data(ttl=3600)
+def generate_ai_summary(snapshot_json: str):
+    """Generate a narrative market summary using GPT."""
+    import json
+    from utils.config import OPENAI_API_KEY
+
+    if not OPENAI_API_KEY:
+        return None
+    try:
+        from openai import OpenAI
+
+        client = OpenAI(api_key=OPENAI_API_KEY)
+        snapshot = json.loads(snapshot_json)
+        prompt = f"""Based on this Singapore AI job market snapshot, write a concise 3-4 paragraph market briefing.
+Be specific with numbers. Use a professional analyst tone.
+
+Snapshot data:
+- Total listings: {snapshot.get('total_listings', 0)}
+- New this week: {snapshot.get('new_listings_count', 0)}
+- Listings by role: {json.dumps(snapshot.get('listings_by_role', {}))}
+- Listings by seniority: {json.dumps(snapshot.get('listings_by_seniority', {}))}
+- Top skills: {json.dumps(snapshot.get('top_skills', [])[:15])}
+- Avg salary by role: {json.dumps(snapshot.get('avg_salary_by_role', {}))}
+- Snapshot date: {snapshot.get('snapshot_date', 'today')}"""
+
+        response = client.chat.completions.create(
+            model="gpt-5.4-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a Singapore tech job market analyst. Write clear, data-driven market briefings.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+        )
+        return response.choices[0].message.content
+    except Exception:
+        return None
+
+
+import json as _json
+
+summary = generate_ai_summary(_json.dumps(latest))
+if summary:
+    st.markdown(summary)
+else:
+    st.info(
+        "AI summary unavailable. Set OPENAI_API_KEY to enable."
+    )
 
 # Last updated
 created_at = latest.get("created_at", "")

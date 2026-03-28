@@ -7,7 +7,7 @@ from pipeline.scrapers.base_scraper import BaseScraper
 
 logger = logging.getLogger(__name__)
 
-MCF_API_BASE = "https://api.mycareersfuture.gov.sg/v2/search"
+MCF_API_BASE = "https://api.mycareersfuture.gov.sg/v2/jobs"
 MCF_PAGE_SIZE = 100
 
 
@@ -39,7 +39,10 @@ class MyCareersFutureScraper(BaseScraper):
             try:
                 data = resp.json()
             except Exception:
-                logger.error(f"[{self.source_name}] Non-JSON response for '{search_term}' page {page}")
+                logger.error(
+                    f"[{self.source_name}] Non-JSON response for "
+                    f"'{search_term}' page {page}"
+                )
                 break
 
             results = data.get("results", [])
@@ -67,7 +70,7 @@ class MyCareersFutureScraper(BaseScraper):
                 return None
 
             # Company
-            company_info = item.get("postedCompany", {})
+            company_info = item.get("postedCompany") or {}
             company = company_info.get("name", "Unknown")
 
             # Description — strip HTML tags
@@ -79,50 +82,76 @@ class MyCareersFutureScraper(BaseScraper):
                 description = ""
 
             # Salary
-            salary = item.get("salary", {})
+            salary = item.get("salary") or {}
             salary_min = salary.get("minimum")
             salary_max = salary.get("maximum")
-            # Convert to float if present
             if salary_min is not None:
                 salary_min = float(salary_min)
             if salary_max is not None:
                 salary_max = float(salary_max)
 
-            # Posting date
+            # Posting date — try metadata.createdAt, then updatedAt
             posting_date = None
-            new_posting_date = item.get("metadata", {}).get("newPostingDate")
-            if new_posting_date:
-                try:
-                    dt = datetime.fromisoformat(
-                        new_posting_date.replace("Z", "+00:00")
-                    )
-                    posting_date = dt.strftime("%Y-%m-%d")
-                except (ValueError, TypeError):
-                    pass
+            metadata = item.get("metadata") or {}
+            for date_field in ("newPostingDate", "createdAt", "updatedAt"):
+                raw_date = metadata.get(date_field)
+                if raw_date:
+                    try:
+                        dt = datetime.fromisoformat(
+                            raw_date.replace("Z", "+00:00")
+                        )
+                        posting_date = dt.strftime("%Y-%m-%d")
+                        break
+                    except (ValueError, TypeError):
+                        continue
 
-            # Job URL
+            # Job URL — build from uuid
             uuid = item.get("uuid", "")
-            metadata = item.get("metadata", {})
-            job_url = metadata.get("jobDetailsUrl", "")
-            if not job_url and uuid:
-                job_url = f"https://www.mycareersfuture.gov.sg/job/{uuid}"
-            if not job_url:
+            if not uuid:
                 return None
+            job_url = f"https://www.mycareersfuture.gov.sg/job/{uuid}"
 
             # Skills from the API
-            skills = [s.get("skill", "") for s in item.get("skills", []) if s.get("skill")]
+            skills = [
+                s.get("skill", "")
+                for s in item.get("skills") or []
+                if s.get("skill")
+            ]
 
             # Salary type for raw_data context
-            salary_type = salary.get("type", {})
-            salary_period = salary_type.get("salaryType", "Monthly") if isinstance(salary_type, dict) else "Monthly"
+            salary_type = salary.get("type") or {}
+            salary_period = (
+                salary_type.get("salaryType", "Monthly")
+                if isinstance(salary_type, dict)
+                else "Monthly"
+            )
+
+            # Employment types — array of objects
+            employment_types = [
+                et.get("employmentType", "")
+                for et in item.get("employmentTypes") or []
+                if et.get("employmentType")
+            ]
+
+            # Position levels — array of objects
+            position_levels = [
+                pl.get("position", "")
+                for pl in item.get("positionLevels") or []
+                if pl.get("position")
+            ]
 
             raw_data = {
                 "skills": skills,
                 "salary_period": salary_period,
-                "employment_type": item.get("employmentType", ""),
-                "seniority": item.get("positionLevels", []),
-                "categories": [c.get("category", "") for c in item.get("categories", [])],
+                "employment_types": employment_types,
+                "position_levels": position_levels,
+                "categories": [
+                    c.get("category", "")
+                    for c in item.get("categories") or []
+                ],
                 "uuid": uuid,
+                "min_experience": item.get("minimumYearsExperience"),
+                "job_post_id": metadata.get("jobPostId"),
             }
 
             return self.normalize_job(

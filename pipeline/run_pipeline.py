@@ -7,9 +7,6 @@ import logging
 import os
 import sys
 
-# Add project root to path so imports work from any directory
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -30,27 +27,81 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 SEARCH_TERMS = [
+    # Data Science
     "data scientist",
+    "data science",
     "data analyst",
+    "data engineer",
+    "data architect",
+    "data manager",
+    # AI / ML
     "machine learning engineer",
     "AI engineer",
-    "data engineer",
-    "analytics",
+    "artificial intelligence",
+    "deep learning",
+    "computer vision",
     "MLOps",
     "NLP",
     "LLM",
+    "generative AI",
+    "prompt engineer",
+    # Analytics / BI
+    "analytics",
+    "analytics engineer",
+    "business intelligence",
+    "BI analyst",
+    "BI developer",
+    "business analyst data",
+    "reporting analyst",
+    "insights analyst",
+    # Research
+    "research scientist AI",
+    "applied scientist",
+    "quantitative analyst",
 ]
 
 
+def _get_existing_urls(client) -> set[str]:
+    """Fetch all source_urls already in raw_listings."""
+    existing = set()
+    page_size = 1000
+    offset = 0
+    while True:
+        resp = (
+            client.table("raw_listings")
+            .select("source_url")
+            .range(offset, offset + page_size - 1)
+            .execute()
+        )
+        for row in resp.data:
+            existing.add(row["source_url"])
+        if len(resp.data) < page_size:
+            break
+        offset += page_size
+    return existing
+
+
 def store_listings(listings: list[dict], client) -> int:
-    """Upsert listings into raw_listings, skipping duplicates by source_url."""
+    """Insert only truly new listings, skipping URLs already in the database."""
     if not listings:
         return 0
-    # Upsert in batches to avoid payload size limits
+
+    existing_urls = _get_existing_urls(client)
+    new_listings = [l for l in listings if l["source_url"] not in existing_urls]
+
+    if not new_listings:
+        logger.info("No new listings to store (all already in database)")
+        return 0
+
+    logger.info(
+        f"Inserting {len(new_listings)} new listings "
+        f"(skipped {len(listings) - len(new_listings)} existing)"
+    )
+
     batch_size = 100
     total = 0
-    for i in range(0, len(listings), batch_size):
-        batch = listings[i : i + batch_size]
+    for i in range(0, len(new_listings), batch_size):
+        batch = new_listings[i : i + batch_size]
         try:
             response = (
                 client.table("raw_listings")

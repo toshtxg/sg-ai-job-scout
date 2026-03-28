@@ -1,8 +1,3 @@
-import sys
-import os
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
-
 import streamlit as st
 import pandas as pd
 
@@ -53,6 +48,33 @@ with st.sidebar:
 filtered = apply_filters(jobs, filters)
 
 st.markdown(f"**{len(filtered)}** jobs found (of {len(jobs)} total)")
+
+# Export filtered results
+export_rows = []
+for r in filtered:
+    raw = r.get("raw_listings") or {}
+    export_rows.append(
+        {
+            "Title": raw.get("title", ""),
+            "Company": raw.get("company", ""),
+            "Role": r.get("role_category", ""),
+            "Seniority": r.get("seniority_level", ""),
+            "Salary Min": raw.get("salary_min"),
+            "Salary Max": raw.get("salary_max"),
+            "Skills": ", ".join(r.get("technical_skills") or []),
+            "Industry": r.get("industry", ""),
+            "Work Mode": r.get("remote_hybrid_onsite", ""),
+            "Posted Date": raw.get("posting_date", ""),
+            "Source URL": raw.get("source_url", ""),
+        }
+    )
+export_df = pd.DataFrame(export_rows)
+st.download_button(
+    label="Download CSV",
+    data=export_df.to_csv(index=False),
+    file_name="filtered_jobs.csv",
+    mime="text/csv",
+)
 
 # Sort options
 sort_col = st.selectbox(

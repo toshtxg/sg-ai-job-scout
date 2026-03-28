@@ -37,13 +37,21 @@ with st.sidebar:
     )
     st.markdown("**Sources:** MyCareersFuture.gov.sg")
     st.markdown(
-        "**Methodology:** GPT-4o-mini classifies each listing into role "
+        "**Methodology:** GPT-5.4-mini classifies each listing into role "
         "category, seniority, skills, and industry."
     )
     st.markdown(
         "**Schedule:** Pipeline runs Monday & Thursday at 2 AM UTC via "
         "GitHub Actions."
     )
+    st.markdown("---")
+    st.markdown("### Pipeline Health")
+    from components.pipeline_health import render_pipeline_health
+    from utils.supabase_client import get_client
+    try:
+        render_pipeline_health(get_client())
+    except Exception:
+        st.caption("Could not load pipeline health")
     st.markdown("---")
     st.caption("Created by Tosh")
 
@@ -55,21 +63,24 @@ st.markdown(
 )
 
 st.markdown("### Navigate")
-col1, col2, col3, col4 = st.columns(4)
+col1, col2, col3 = st.columns(3)
 with col1:
     st.page_link("pages/1_Dashboard.py", label="\U0001f4ca Dashboard", use_container_width=True)
+    st.page_link("pages/4_Trends.py", label="\U0001f4c8 Trends", use_container_width=True)
+    st.page_link("pages/7_Skills_Gap.py", label="\U0001f9e9 Skills Gap Analyzer", use_container_width=True)
 with col2:
     st.page_link("pages/2_Job_Explorer.py", label="\U0001f50e Job Explorer", use_container_width=True)
+    st.page_link("pages/5_Company_Leaderboard.py", label="\U0001f3c6 Company Leaderboard", use_container_width=True)
+    st.page_link("pages/8_AI_Skills_Deep_Dive.py", label="\U0001f916 AI Skills Deep Dive", use_container_width=True)
 with col3:
     st.page_link("pages/3_Role_Taxonomy.py", label="\U0001f9e0 Role Taxonomy", use_container_width=True)
-with col4:
-    st.page_link("pages/4_Trends.py", label="\U0001f4c8 Trends", use_container_width=True)
+    st.page_link("pages/6_Salary_Estimator.py", label="\U0001f4b0 Salary Estimator", use_container_width=True)
 
 st.markdown("---")
 st.markdown(
     "#### How it works\n"
     "1. **Scrape** — Job listings are collected from MyCareersFuture.gov.sg\n"
-    "2. **Classify** — GPT-4o-mini extracts role, seniority, skills, and industry\n"
+    "2. **Classify** — GPT-5.4-mini extracts role, seniority, skills, and industry\n"
     "3. **Aggregate** — Market snapshots capture trends over time\n"
     "4. **Explore** — This dashboard lets you filter, compare, and discover"
 )

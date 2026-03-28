@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS classified_listings (
     remote_hybrid_onsite TEXT,
     industry TEXT,
     classified_at TIMESTAMPTZ DEFAULT NOW(),
-    model_used TEXT DEFAULT 'gpt-4o-mini'
+    model_used TEXT DEFAULT 'gpt-5.4-mini'
 );
 
 CREATE TABLE IF NOT EXISTS market_snapshots (
