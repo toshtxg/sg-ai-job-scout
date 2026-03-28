@@ -1,8 +1,8 @@
 name: Scrape & Classify
 on:
   schedule:
-    - cron: '0 2 * * 1,4'  # 2 AM UTC on Monday and Thursday
-  workflow_dispatch:  # Manual trigger
+    - cron: '0 2 * * 1,4'   # 2 AM UTC on Monday and Thursday
+  workflow_dispatch:          # Manual trigger
 
 jobs:
   scrape:
