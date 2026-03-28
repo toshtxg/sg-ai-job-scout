@@ -164,6 +164,40 @@ SKILL_TIERS = {
     ],
 }
 
+# AI involvement levels — maps taxonomy categories to user-facing buckets
+AI_INVOLVEMENT_LEVELS = {
+    "Uses AI to augment": [
+        "AI Literacy & Augmentation",
+        "Prompt Engineering",
+    ],
+    "Uses ML models": [
+        "Classical ML",
+        "Deep Learning",
+        "NLP",
+        "Computer Vision",
+    ],
+    "AI/LLM Engineering": [
+        "LLM & GenAI Development",
+        "AI Agents & Automation",
+        "AI Evaluation & Safety",
+        "Responsible AI & Governance",
+    ],
+    "MLOps & Infrastructure": [
+        "MLOps & Infrastructure",
+    ],
+}
+
+
+def classify_ai_involvement(listing_categories: dict[str, list[str]]) -> list[str]:
+    """Given a listing's matched AI categories, return its AI involvement levels."""
+    levels = []
+    matched_cats = set(listing_categories.keys())
+    for level, cats in AI_INVOLVEMENT_LEVELS.items():
+        if matched_cats & set(cats):
+            levels.append(level)
+    return levels
+
+
 # Maturity labels
 SKILL_MATURITY = {
     "AI Literacy & Augmentation": "Becoming table stakes",

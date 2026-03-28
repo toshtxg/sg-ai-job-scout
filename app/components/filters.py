@@ -57,7 +57,17 @@ def render_job_filters() -> dict:
     filters["source"] = st.multiselect(
         "Source", ["mycareersfuture"]
     )
-    filters["requires_ai_ml"] = st.checkbox("Requires AI/ML only", value=False)
+
+    AI_INVOLVEMENT = [
+        "Uses AI to augment",
+        "Uses ML models",
+        "AI/LLM Engineering",
+        "MLOps & Infrastructure",
+    ]
+    filters["ai_involvement"] = st.multiselect(
+        "AI Involvement Level", AI_INVOLVEMENT,
+        help="Filter by how AI is used in the role"
+    )
 
     return filters
 
@@ -114,7 +124,17 @@ def apply_filters(data: list[dict], filters: dict) -> list[dict]:
             if (r.get("raw_listings") or {}).get("source") in filters["source"]
         ]
 
-    if filters.get("requires_ai_ml"):
-        filtered = [r for r in filtered if r.get("requires_ai_ml")]
+    if filters.get("ai_involvement"):
+        from pipeline.ai_skills_analyzer import analyze_listing, classify_ai_involvement
+
+        def _matches_ai_involvement(row):
+            raw = row.get("raw_listings") or {}
+            desc = raw.get("description") or ""
+            skills = row.get("technical_skills") or []
+            matches = analyze_listing(desc, skills)
+            levels = classify_ai_involvement(matches)
+            return any(lvl in filters["ai_involvement"] for lvl in levels)
+
+        filtered = [r for r in filtered if _matches_ai_involvement(r)]
 
     return filtered
