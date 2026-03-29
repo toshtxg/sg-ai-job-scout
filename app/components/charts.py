@@ -22,8 +22,13 @@ def create_listings_by_role_chart(listings_by_role: dict) -> go.Figure:
     if not listings_by_role:
         return _empty_figure("No role data available")
 
+    # Exclude "Other" — these are non-data/AI roles (software eng, DevOps, etc.)
+    filtered = {r: c for r, c in listings_by_role.items() if r != "Other"}
+    if not filtered:
+        return _empty_figure("No role data available")
+
     # Sort by count descending
-    sorted_items = sorted(listings_by_role.items(), key=lambda x: x[1])
+    sorted_items = sorted(filtered.items(), key=lambda x: x[1])
     roles = [r for r, _ in sorted_items]
     counts = [c for _, c in sorted_items]
     colors = [ROLE_COLORS[i % len(ROLE_COLORS)] for i in range(len(roles))]
@@ -59,6 +64,8 @@ def create_salary_comparison_chart(avg_salary_by_role: dict) -> go.Figure:
     for role, data in sorted(
         avg_salary_by_role.items(), key=lambda x: x[1].get("avg_max") or 0
     ):
+        if role == "Other":
+            continue
         if data.get("avg_min") is not None or data.get("avg_max") is not None:
             roles.append(role)
             avg_mins.append(data.get("avg_min") or 0)
