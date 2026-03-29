@@ -95,8 +95,9 @@ def create_salary_comparison_chart(avg_salary_by_role: dict) -> go.Figure:
             base=avg_mins,
         )
     )
+    salary_layout = {k: v for k, v in LAYOUT_DEFAULTS.items() if k != "margin"}
     fig.update_layout(
-        **LAYOUT_DEFAULTS,
+        **salary_layout,
         title="Salary Range by Role (SGD/month)",
         barmode="overlay",
         showlegend=True,
