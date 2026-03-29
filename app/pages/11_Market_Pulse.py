@@ -160,13 +160,13 @@ sub2.caption(
 
 
 # =========================================================================
-# Section 2: Skill Demand vs Rarity Index
+# Section 2: Most In-Demand Skills
 # =========================================================================
 st.markdown("---")
-st.subheader("Skill Demand vs Hiring Breadth")
+st.subheader("Most In-Demand Skills")
 st.caption(
-    "Each skill plotted by how many listings mention it (demand) vs how many "
-    "distinct companies hire for it (breadth). Bubble size = average salary."
+    "Top 20 skills by number of listings. Bar shows demand; "
+    "annotation shows how many distinct companies hire for each skill."
 )
 
 # Compute per-skill stats
@@ -174,161 +174,40 @@ skill_stats: dict[str, dict] = {}
 for _, listing in df.iterrows():
     skills = listing["technical_skills"]
     company = listing["company"]
-    salary = listing["salary_mid"]
     for skill in skills:
         if skill not in skill_stats:
-            skill_stats[skill] = {
-                "count": 0,
-                "companies": set(),
-                "salaries": [],
-            }
+            skill_stats[skill] = {"count": 0, "companies": set()}
         skill_stats[skill]["count"] += 1
         skill_stats[skill]["companies"].add(company)
-        if pd.notna(salary):
-            skill_stats[skill]["salaries"].append(salary)
 
-# Filter to skills appearing in >= 5 listings, keep top 40 by demand
-MIN_LISTINGS = 5
-filtered_skills = {
-    k: v for k, v in skill_stats.items() if v["count"] >= MIN_LISTINGS
-}
+if skill_stats:
+    top20 = sorted(skill_stats.items(), key=lambda x: x[1]["count"], reverse=True)[:20]
+    skill_names = [s for s, _ in top20]
+    skill_counts = [v["count"] for _, v in top20]
+    company_counts = [len(v["companies"]) for _, v in top20]
 
-if filtered_skills:
-    scatter_data = []
-    for skill, stats in filtered_skills.items():
-        n_companies = len(stats["companies"])
-        avg_salary = (
-            sum(stats["salaries"]) / len(stats["salaries"])
-            if stats["salaries"]
-            else 0
+    fig = go.Figure(
+        go.Bar(
+            x=skill_counts[::-1],
+            y=skill_names[::-1],
+            orientation="h",
+            marker_color="#0ea5e9",
+            text=[
+                f"{c} listings ({co} companies)"
+                for c, co in zip(skill_counts[::-1], company_counts[::-1])
+            ],
+            textposition="outside",
         )
-        scatter_data.append(
-            {
-                "skill": skill,
-                "demand": stats["count"],
-                "companies": n_companies,
-                "avg_salary": avg_salary,
-            }
-        )
-
-    sdf = pd.DataFrame(scatter_data)
-    # Keep only top 40 skills by demand to reduce clutter
-    sdf = sdf.nlargest(40, "demand").reset_index(drop=True)
-
-    # Classify into quadrants
-    median_demand = sdf["demand"].median()
-    median_companies = sdf["companies"].median()
-
-    def classify_quadrant(row):
-        high_demand = row["demand"] > median_demand
-        high_breadth = row["companies"] > median_companies
-        if high_demand and high_breadth:
-            return "Universal (table stakes)"
-        elif high_demand and not high_breadth:
-            return "Concentrated (industry-specific)"
-        elif not high_demand and high_breadth:
-            return "Emerging (growing across companies)"
-        else:
-            return "Niche (specialist)"
-
-    sdf["quadrant"] = sdf.apply(classify_quadrant, axis=1)
-
-    quadrant_colors = {
-        "Universal (table stakes)": "#0ea5e9",
-        "Concentrated (industry-specific)": "#f59e0b",
-        "Emerging (growing across companies)": "#14b8a6",
-        "Niche (specialist)": "#8b5cf6",
-    }
-
-    # Only label the top 15 skills to avoid overlap
-    top_labeled = set(sdf.nlargest(15, "demand")["skill"])
-
-    fig = go.Figure()
-    for quadrant, color in quadrant_colors.items():
-        mask = sdf["quadrant"] == quadrant
-        subset = sdf[mask]
-        if subset.empty:
-            continue
-        # Scale bubble size: use salary relative to max for visual clarity
-        max_salary = sdf["avg_salary"].max() if sdf["avg_salary"].max() > 0 else 1
-        sizes = (
-            subset["avg_salary"].apply(
-                lambda s: max(10, s / max_salary * 45) if s > 0 else 10
-            )
-        )
-        # Only show text for top skills
-        labels = subset["skill"].apply(lambda s: s if s in top_labeled else "")
-        fig.add_trace(
-            go.Scatter(
-                x=subset["companies"],
-                y=subset["demand"],
-                mode="markers+text",
-                name=quadrant,
-                marker=dict(
-                    size=sizes,
-                    color=color,
-                    opacity=0.8,
-                    line=dict(width=1, color="#fafafa"),
-                ),
-                text=labels,
-                textposition="top center",
-                textfont=dict(size=10, color="#e2e8f0"),
-                hovertext=subset["skill"],
-                hovertemplate=(
-                    "<b>%{hovertext}</b><br>"
-                    "Listings: %{y}<br>"
-                    "Companies: %{x}<br>"
-                    "Avg Salary: $%{customdata:,.0f}/mo"
-                    "<extra></extra>"
-                ),
-                customdata=subset["avg_salary"],
-            )
-        )
-
-    # Draw quadrant lines
-    fig.add_hline(
-        y=median_demand,
-        line_dash="dot",
-        line_color="#475569",
-        opacity=0.6,
     )
-    fig.add_vline(
-        x=median_companies,
-        line_dash="dot",
-        line_color="#475569",
-        opacity=0.6,
-    )
-
     fig.update_layout(
         **LAYOUT_DEFAULTS,
-        title="Skill Demand vs Hiring Breadth",
-        xaxis_title="Number of Distinct Companies",
-        yaxis_title="Number of Listings",
-        height=550,
-        legend=dict(
-            orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5
-        ),
+        title="Top 20 Skills by Demand",
+        xaxis_title="Number of Listings",
+        height=max(450, 20 * 28),
     )
     st.plotly_chart(fig, width="stretch")
-
-    # Show a summary table below
-    with st.expander("Skill quadrant details"):
-        display_sdf = sdf.sort_values("demand", ascending=False).copy()
-        display_sdf["avg_salary"] = display_sdf["avg_salary"].apply(
-            lambda v: f"${v:,.0f}" if v > 0 else "N/A"
-        )
-        display_sdf = display_sdf.rename(
-            columns={
-                "skill": "Skill",
-                "demand": "Listings",
-                "companies": "Companies",
-                "avg_salary": "Avg Salary",
-                "quadrant": "Quadrant",
-            }
-        )
-        st.dataframe(display_sdf, width="stretch", hide_index=True)
 else:
-    st.info("Not enough skill data to generate the demand vs breadth chart.")
+    st.info("Not enough skill data.")
 
 
 # =========================================================================

@@ -2,6 +2,8 @@ import streamlit as st
 
 st.set_page_config(layout="wide")
 
+import pandas as pd
+
 from app.utils.supabase_client import get_client
 from app.components.charts import (
     create_listings_by_role_chart,
@@ -32,6 +34,27 @@ def load_dashboard_data():
     return latest_snapshot.data, all_snapshots.data
 
 
+@st.cache_data(ttl=3600)
+def load_recent_listings():
+    """Load the most recent classified listings for 'New This Week'."""
+    client = get_client()
+    from datetime import datetime, timedelta
+
+    cutoff = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+    resp = (
+        client.table("classified_listings")
+        .select(
+            "role_category, seniority_level, remote_hybrid_onsite, "
+            "raw_listings!listing_id(title, company, salary_min, salary_max, "
+            "posting_date, source_url)"
+        )
+        .order("created_at", desc=True)
+        .limit(200)
+        .execute()
+    )
+    return resp.data
+
+
 snapshot_data, all_snapshots = load_dashboard_data()
 
 if not snapshot_data:
@@ -51,6 +74,19 @@ top_role = max(filtered_roles, key=filtered_roles.get) if filtered_roles else "N
 top_skills = latest.get("top_skills") or []
 top_skill = top_skills[0]["skill"] if top_skills else "N/A"
 
+# Work mode summary from recent listings
+recent = load_recent_listings()
+work_modes = {}
+for r in recent:
+    wm = r.get("remote_hybrid_onsite", "Unknown")
+    work_modes[wm] = work_modes.get(wm, 0) + 1
+total_wm = sum(work_modes.values()) or 1
+work_mode_str = " | ".join(
+    f"{m} {c / total_wm * 100:.0f}%"
+    for m, c in sorted(work_modes.items(), key=lambda x: -x[1])
+    if m != "Unknown"
+)
+
 # Metrics row
 render_metric_row(
     total=latest.get("total_listings", 0),
@@ -58,6 +94,9 @@ render_metric_row(
     top_role=top_role,
     top_skill=top_skill,
 )
+
+if work_mode_str:
+    st.caption(f"Work arrangements: {work_mode_str}")
 
 st.markdown("")
 
@@ -77,6 +116,55 @@ with col2:
     avg_salary = latest.get("avg_salary_by_role") or {}
     fig = create_salary_comparison_chart(avg_salary)
     st.plotly_chart(fig, width="stretch")
+
+# --- New This Week ---
+st.markdown("### New This Week")
+
+WORK_MODE_ICONS = {"Remote": "🏠", "Hybrid": "🔄", "Onsite": "🏢"}
+
+new_rows = []
+for r in recent:
+    raw = r.get("raw_listings") or {}
+    if not raw.get("title"):
+        continue
+    role = r.get("role_category", "Other")
+    if role == "Other":
+        continue
+    sal_min = raw.get("salary_min")
+    sal_max = raw.get("salary_max")
+    salary = (
+        f"${float(sal_min):,.0f}–${float(sal_max):,.0f}"
+        if sal_min is not None and sal_max is not None
+        else f"Up to ${float(sal_max):,.0f}" if sal_max is not None
+        else "—"
+    )
+    wm = r.get("remote_hybrid_onsite", "Unknown")
+    wm_icon = WORK_MODE_ICONS.get(wm, "")
+    new_rows.append({
+        "Title": raw.get("title", ""),
+        "Company": raw.get("company", "Unknown"),
+        "Role": role,
+        "Seniority": r.get("seniority_level", ""),
+        "Salary": salary,
+        "Mode": f"{wm_icon} {wm}" if wm_icon else wm,
+        "Posted": raw.get("posting_date", ""),
+        "Link": raw.get("source_url", ""),
+    })
+
+if new_rows:
+    new_df = pd.DataFrame(new_rows[:20])
+    st.dataframe(
+        new_df,
+        column_config={
+            "Link": st.column_config.LinkColumn("Apply", display_text="View →"),
+        },
+        width="stretch",
+        hide_index=True,
+    )
+    if len(new_rows) > 20:
+        st.caption(f"Showing 20 of {len(new_rows)} new listings. See Job Explorer for all.")
+else:
+    st.info("No new listings this week.")
 
 # Volume over time — full width
 fig = create_volume_over_time_chart(all_snapshots)

@@ -58,13 +58,12 @@ st.markdown("### Navigate")
 col1, col2, col3 = st.columns(3)
 with col1:
     st.page_link("pages/1_Dashboard.py", label="\U0001f4ca Dashboard", width="stretch")
-    st.page_link("pages/7_Skills_Gap.py", label="\U0001f9e9 Skills Gap Analyzer", width="stretch")
+    st.page_link("pages/3_Role_Taxonomy.py", label="\U0001f9e0 Roles & Skills", width="stretch")
     st.page_link("pages/10_Learning_Roadmap.py", label="\U0001f5fa Learning Roadmap", width="stretch")
 with col2:
     st.page_link("pages/2_Job_Explorer.py", label="\U0001f50e Job Explorer", width="stretch")
     st.page_link("pages/5_Company_Leaderboard.py", label="\U0001f3c6 Company Leaderboard", width="stretch")
     st.page_link("pages/8_AI_Skills_Deep_Dive.py", label="\U0001f916 AI Skills Deep Dive", width="stretch")
 with col3:
-    st.page_link("pages/3_Role_Taxonomy.py", label="\U0001f9e0 Roles & Skills", width="stretch")
-    st.page_link("pages/9_Skills_Salary_Premium.py", label="\U0001f4b5 Skills Salary Premium", width="stretch")
+    st.page_link("pages/6_Jobs_For_You.py", label="\U0001f3af Jobs for You", width="stretch")
     st.page_link("pages/11_Market_Pulse.py", label="\U0001f4a1 Market Pulse", width="stretch")

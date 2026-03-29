@@ -119,15 +119,23 @@ for row in filtered[:100]:  # Show first 100
     elif salary_max is not None:
         salary_str = f"Up to ${float(salary_max):,.0f}/mo"
 
+    work_mode = row.get("remote_hybrid_onsite", "Unknown")
+    wm_icons = {"Remote": "🏠", "Hybrid": "🔄", "Onsite": "🏢"}
+    wm_tag = wm_icons.get(work_mode, "")
+
     header = f"**{title}** — {company}"
     if salary_str:
         header += f"  |  {salary_str}"
+    if wm_tag:
+        header += f"  {wm_tag}"
 
     with st.expander(header):
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns([2, 2, 2, 1])
         col1.markdown(f"**Role:** {role}")
         col2.markdown(f"**Seniority:** {seniority}")
         col3.markdown(f"**Posted:** {posting_date}")
+        if source_url:
+            col4.link_button("Apply →", source_url)
 
         # Skills tags
         tech_skills = row.get("technical_skills") or []
@@ -143,10 +151,10 @@ for row in filtered[:100]:  # Show first 100
         # Additional info
         info_cols = st.columns(3)
         info_cols[0].markdown(
-            f"**AI/ML Required:** {'Yes' if row.get('requires_ai_ml') else 'No'}"
+            f"**Work Mode:** {wm_tag} {work_mode}"
         )
         info_cols[1].markdown(
-            f"**Work Mode:** {row.get('remote_hybrid_onsite', 'Unknown')}"
+            f"**AI/ML:** {'Yes' if row.get('requires_ai_ml') else 'No'}"
         )
         info_cols[2].markdown(f"**Industry:** {row.get('industry', 'N/A')}")
 
@@ -155,9 +163,6 @@ for row in filtered[:100]:  # Show first 100
         if desc:
             st.markdown("**Description:**")
             st.text(desc[:500] + ("..." if len(desc) > 500 else ""))
-
-        if source_url:
-            st.link_button("View Original Posting", source_url)
 
 if len(filtered) > 100:
     st.info(f"Showing first 100 of {len(filtered)} results. Use filters to narrow down.")
