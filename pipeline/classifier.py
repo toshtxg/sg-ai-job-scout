@@ -25,7 +25,10 @@ Company: {company}
 Description (first 2000 chars): {description}
 
 IMPORTANT RULES:
-- role_category MUST be one of the exact values listed. Pick the BEST match. Only use "Other" if the job truly has nothing to do with data, analytics, AI, ML, or BI.
+- role_category MUST be one of the exact values listed. Pick the BEST match.
+- Use "Other" for roles that are NOT about working with data/analytics/AI/ML/BI as a core function. Examples of "Other": Data Center Engineers, Sales Engineers, Marketing roles, Software Engineers (without data/AI focus), Network Engineers, Project Managers, IT Support, Accounts/Finance roles.
+- "Business Analyst" roles focused on data, reporting, or analytics should be classified as Data Analyst or BI Analyst.
+- "Data Center" / "Data Centre" roles are physical infrastructure — always classify as "Other".
 - Most data/analytics jobs fit into Data Analyst, BI Analyst, or Analytics Manager.
 - Most AI/ML jobs fit into AI Engineer, ML Engineer, Data Scientist, or NLP Specialist.
 - seniority_level: infer from title and years of experience mentioned. Default to "Mid" if unclear.

@@ -61,8 +61,14 @@ st.markdown("")
 # Charts
 col1, col2 = st.columns(2)
 with col1:
+    other_count = listings_by_role.get("Other", 0)
     fig = create_listings_by_role_chart(listings_by_role)
     st.plotly_chart(fig, width="stretch")
+    if other_count:
+        st.caption(
+            f"{other_count:,} non-data/AI listings (software eng, data center, "
+            f"sales, etc.) excluded from chart."
+        )
 
 with col2:
     avg_salary = latest.get("avg_salary_by_role") or {}
