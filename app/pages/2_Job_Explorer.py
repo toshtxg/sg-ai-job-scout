@@ -115,19 +115,19 @@ for row in filtered[:100]:  # Show first 100
 
     salary_str = ""
     if salary_min is not None and salary_max is not None:
-        salary_str = f"${float(salary_min):,.0f} - ${float(salary_max):,.0f}/mo"
+        salary_str = f"SGD {float(salary_min):,.0f} – {float(salary_max):,.0f}/mo"
     elif salary_max is not None:
-        salary_str = f"Up to ${float(salary_max):,.0f}/mo"
+        salary_str = f"Up to SGD {float(salary_max):,.0f}/mo"
 
     work_mode = row.get("remote_hybrid_onsite", "Unknown")
     wm_icons = {"Remote": "🏠", "Hybrid": "🔄", "Onsite": "🏢"}
     wm_tag = wm_icons.get(work_mode, "")
 
-    header = f"**{title}** — {company}"
+    header = f"{title} — {company}"
     if salary_str:
-        header += f"  |  {salary_str}"
+        header += f" | {salary_str}"
     if wm_tag:
-        header += f"  {wm_tag}"
+        header += f" {wm_tag}"
 
     with st.expander(header):
         # Top row: key info + apply button
