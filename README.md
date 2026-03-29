@@ -2,6 +2,8 @@
 
 A Streamlit dashboard that tracks and analyzes Singapore's AI, data science, and analytics job market. Job listings are sourced from [MyCareersFuture.gov.sg](https://www.mycareersfuture.gov.sg/), classified using GPT-5.4-mini, and presented through interactive visualizations.
 
+**Live app:** [sg-ai-job-scout.streamlit.app](https://sg-ai-job-scout.streamlit.app/)
+
 ![Python](https://img.shields.io/badge/Python-3.11+-blue)
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.30+-red)
 ![License](https://img.shields.io/badge/License-MIT-green)
@@ -13,34 +15,62 @@ sg-ai-job-scout/
 ├── app/                          # Streamlit frontend
 │   ├── Home.py                   # Main entry point
 │   ├── pages/                    # Multi-page app
-│   │   ├── 1_Dashboard.py        # Overview metrics & charts
-│   │   ├── 2_Job_Explorer.py     # Filterable job browser (CSV export)
-│   │   ├── 3_Role_Taxonomy.py    # Skills & role analysis
-│   │   ├── 4_Trends.py           # Time-series trends
-│   │   ├── 5_Company_Leaderboard.py
-│   │   ├── 6_Salary_Estimator.py
-│   │   ├── 7_Skills_Gap.py       # Skills gap analyzer
-│   │   └── 8_AI_Skills_Deep_Dive.py  # AI skills taxonomy
+│   │   ├── 1_Dashboard.py        # Overview metrics, new listings, charts
+│   │   ├── 2_Job_Explorer.py     # Filterable job browser with apply links
+│   │   ├── 3_Role_Taxonomy.py    # Skills heatmap & role analysis
+│   │   ├── 5_Company_Leaderboard.py  # Top hiring companies & profiles
+│   │   ├── 6_Jobs_For_You.py     # Personalised job matching
+│   │   ├── 8_AI_Skills_Deep_Dive.py  # 11-category AI skills taxonomy
+│   │   ├── 10_Learning_Roadmap.py    # Skill progression & learning paths
+│   │   └── 11_Market_Pulse.py    # Market landscape & industry adoption
+│   ├── pages_hidden/             # Preserved but hidden from nav
+│   │   ├── 7_Skills_Gap.py
+│   │   └── 9_Skills_Salary_Premium.py
 │   ├── components/               # Reusable UI components
+│   │   ├── charts.py             # Plotly chart builders
+│   │   ├── filters.py            # Role scope toggle & job filters
+│   │   └── metrics.py            # Metric card row
 │   └── utils/                    # Config & Supabase client
 ├── pipeline/                     # Data pipeline
-│   ├── scrapers/                 # Job site scrapers
+│   ├── scrapers/
 │   │   ├── base_scraper.py       # Abstract base with backoff
-│   │   └── mycareersfuture.py    # MCF API scraper
-│   ├── classifier.py             # GPT-5.4-mini classification
+│   │   └── mycareersfuture.py    # MCF API scraper (59 search terms)
+│   ├── classifier.py             # GPT-5.4-mini structured classification
 │   ├── ai_skills_analyzer.py     # 281-keyword AI skills taxonomy
 │   ├── skills_normalizer.py      # Canonical skill name mapping
 │   ├── snapshot.py               # Market snapshot aggregation
+│   ├── reclassify_others.py      # Re-classification utility
 │   └── run_pipeline.py           # Pipeline orchestrator
-├── sql/                          # Database schema
-│   └── schema.sql                # Run in Supabase Dashboard
-├── .github/workflows/scrape.yml  # Automated scraping (Mon & Thu)
-├── pyproject.toml                # Python package config
+├── sql/schema.sql                # Database DDL (run in Supabase)
+├── .github/workflows/scrape.yml  # Automated scraping (Mon & Thu 2am UTC)
+├── pyproject.toml
 ├── requirements.txt
 └── .env.example
 ```
 
 **Data flow:** MyCareersFuture API → Supabase (raw_listings) → GPT-5.4-mini classifier → Supabase (classified_listings) → Snapshot aggregation → Streamlit dashboard
+
+## Pages
+
+| Page | What it does |
+|------|-------------|
+| **Dashboard** | Market metrics, role & salary charts, "New This Week" table with apply links, work mode summary, AI-generated market briefing |
+| **Job Explorer** | Browse all jobs with filters (role, seniority, salary, skills, AI involvement). Each listing shows salary, work mode icon, skills tags, and direct apply link |
+| **Jobs for You** | Enter your skills → see matching jobs ranked by skill overlap, with green/red skill highlighting and apply links. Includes "Skills to Learn Next" recommendations |
+| **Roles & Skills** | Top skills bar chart, skills-by-role heatmap |
+| **Company Leaderboard** | Top hiring companies, company deep-dives with role breakdown, salary distribution, and open roles table |
+| **AI Skills Deep Dive** | 11-category AI taxonomy (Prompt Engineering → Responsible AI), tier breakdown, keyword analysis, AI skills by role heatmap |
+| **Learning Roadmap** | Skill progression heatmap by seniority, role-based learning paths with Foundation/Differentiator/Specialist tiers |
+| **Market Pulse** | AI salary premium, top 20 skills by demand, industry AI adoption |
+
+## Key Features
+
+- **Role scope filter** — defaults to Data & Analytics roles (Data Scientist, Data Analyst, Data Engineer, BI Analyst, Analytics Manager). Switch to All Roles or customize.
+- **AI involvement filter** — 4 levels: Uses AI to augment, Uses ML models, AI/LLM Engineering, MLOps & Infrastructure
+- **Direct apply links** — every listing links to the original MyCareersFuture posting
+- **Work mode indicators** — 🏠 Remote, 🔄 Hybrid, 🏢 Onsite
+- **281-keyword AI taxonomy** — 11 categories across 3 career tiers, sourced from Stanford AI Index 2025, PwC, Lightcast
+- **Skill matching** — 50%+ skill overlap = strong match in Jobs for You
 
 ## Tech Stack
 
@@ -48,10 +78,9 @@ sg-ai-job-scout/
 |-----------|-----------|
 | Frontend | Streamlit, Plotly |
 | Database | Supabase (PostgreSQL) |
-| AI Classification | OpenAI GPT-5.4-mini |
-| AI Skills Analysis | 281-keyword taxonomy across 11 categories |
+| AI Classification | OpenAI GPT-5.4-mini (JSON mode) |
 | Data Source | MyCareersFuture.gov.sg (JSON API) |
-| Automation | GitHub Actions (cron) |
+| Automation | GitHub Actions (cron: Mon & Thu 2am UTC) |
 | Language | Python 3.11+ |
 
 ## Setup
@@ -86,7 +115,7 @@ Or create a `.env` file (see `.env.example`).
 python -m pipeline.run_pipeline
 ```
 
-This scrapes jobs from the MyCareersFuture.gov.sg API, classifies them with GPT-5.4-mini, and generates a market snapshot. Subsequent runs only scrape new listings and classify unprocessed ones.
+Scrapes jobs, classifies with GPT-5.4-mini, generates a market snapshot. Subsequent runs only process new/unclassified listings.
 
 ### 5. Launch the dashboard
 
@@ -94,53 +123,36 @@ This scrapes jobs from the MyCareersFuture.gov.sg API, classifies them with GPT-
 streamlit run app/Home.py
 ```
 
-## Pages
-
-| Page | Description |
-|------|-------------|
-| Dashboard | Metrics, role distribution, salary comparison, AI market summary |
-| Job Explorer | Filterable job browser with CSV export |
-| Role Taxonomy | Sunburst chart, skills heatmap, co-occurrence analysis |
-| Trends | Time-series trends (grows with each pipeline run) |
-| Company Leaderboard | Top hiring companies, company profiles |
-| Salary Estimator | Estimate salary by role + seniority + skills |
-| Skills Gap | Input your skills, see which roles match and what to learn |
-| AI Skills Deep Dive | 11-category AI skills taxonomy — surface vs deep AI demand |
-| Skills Salary Premium | Which skills pay more? Premium analysis by skill and role |
-| Learning Roadmap | Skill progression by seniority, co-occurrence paths, role-based learning |
-| Market Pulse | AI vs non-AI market comparison, skill rarity index, industry adoption |
-
 ## Deploy on Streamlit Community Cloud
 
 1. Push this repo to GitHub
 2. Go to [share.streamlit.io](https://share.streamlit.io)
 3. Set **Main file path** to `app/Home.py`
-4. Add secrets in the app settings:
+4. Add secrets in app settings:
    ```toml
    SUPABASE_URL = "https://your-project.supabase.co"
    SUPABASE_KEY = "your-anon-key"
+   OPENAI_API_KEY = "sk-your-key"
    ```
-   (OPENAI_API_KEY is only needed for the pipeline, not the dashboard)
 
 ## GitHub Actions (Automated Scraping)
 
-The pipeline runs automatically on Monday and Thursday at 2 AM UTC. To enable:
+The pipeline runs automatically on Monday and Thursday at 2 AM UTC.
 
 1. Go to your GitHub repo → Settings → Secrets and variables → Actions
-2. Add these repository secrets:
-   - `SUPABASE_URL`
-   - `SUPABASE_KEY`
-   - `OPENAI_API_KEY`
+2. Add repository secrets: `SUPABASE_URL`, `SUPABASE_KEY`, `OPENAI_API_KEY`
 
-You can also trigger a manual run from Actions → Scrape & Classify → Run workflow.
+You can also trigger manually from Actions → Scrape & Classify → Run workflow.
 
 ## Data Source
 
 - **[MyCareersFuture.gov.sg](https://www.mycareersfuture.gov.sg/)** — Singapore government job portal (JSON API)
+- 59 search terms covering AI, data science, analytics, ML, NLP, BI, and related fields
+- ~2,100 listings classified across 11 role categories
 
 ## Disclaimer
 
-This project is for educational and research purposes. Job listing data is sourced from the MyCareersFuture.gov.sg public API. The AI classification is approximate and may not perfectly categorize every listing. Salary data reflects what is posted and may not represent actual compensation.
+This project is for educational and research purposes. Job listing data is sourced from the MyCareersFuture.gov.sg public API. AI classification is approximate and may not perfectly categorize every listing. Salary data reflects what is posted and may not represent actual compensation.
 
 ## License
 
