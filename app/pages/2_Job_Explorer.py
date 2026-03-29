@@ -36,8 +36,8 @@ jobs = load_jobs()
 
 if not jobs:
     st.info(
-        "No classified jobs yet. Run the pipeline first:\n\n"
-        "```bash\npython pipeline/run_pipeline.py\n```"
+        "No job data available yet. Data is refreshed automatically on "
+        "Mondays and Thursdays — check back soon!"
     )
     st.stop()
 

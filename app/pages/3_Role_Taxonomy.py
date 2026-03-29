@@ -3,10 +3,7 @@ import pandas as pd
 from collections import Counter
 
 from app.utils.supabase_client import get_client
-from app.components.charts import (
-    create_sunburst_chart,
-    create_skills_heatmap,
-)
+from app.components.charts import create_skills_heatmap
 from app.components.filters import render_role_scope
 
 st.header("Role Taxonomy & Skills")
@@ -39,31 +36,10 @@ data = [r for r in _all_data if not selected_roles or r.get("role_category") in 
 
 if not data:
     st.info(
-        "No classified data yet. Run the pipeline first:\n\n"
-        "```bash\npython pipeline/run_pipeline.py\n```"
+        "No data available yet. Data is refreshed automatically on "
+        "Mondays and Thursdays — check back soon!"
     )
     st.stop()
-
-# --- Sunburst: Role → Seniority ---
-st.subheader("Role & Seniority Distribution")
-
-sunburst_data = []
-for row in data:
-    sunburst_data.append(
-        {
-            "role_category": row.get("role_category", "Other"),
-            "seniority_level": row.get("seniority_level", "Mid"),
-        }
-    )
-sunburst_df = pd.DataFrame(sunburst_data)
-sunburst_counts = (
-    sunburst_df.groupby(["role_category", "seniority_level"])
-    .size()
-    .reset_index(name="count")
-)
-
-fig = create_sunburst_chart(sunburst_counts)
-st.plotly_chart(fig, width="stretch")
 
 # --- Top Skills Bar Chart ---
 st.subheader("Top Technical Skills")
@@ -126,29 +102,3 @@ if top_global_skills and role_skill_counts:
     fig = create_skills_heatmap(heatmap_df)
     st.plotly_chart(fig, width="stretch")
 
-# --- Skills Co-occurrence ---
-st.subheader("Skills Co-occurrence")
-st.markdown("When a job requires a specific skill, what other skills are commonly listed?")
-
-selected_skill = st.selectbox(
-    "Select a skill",
-    [s for s, _ in skill_counter.most_common(30)],
-)
-
-if selected_skill:
-    co_counter = Counter()
-    for row in data:
-        skills = row.get("technical_skills") or []
-        if selected_skill in skills:
-            for s in skills:
-                if s != selected_skill:
-                    co_counter[s] += 1
-
-    if co_counter:
-        co_top = co_counter.most_common(10)
-        st.markdown(f"**Jobs requiring {selected_skill} also commonly require:**")
-        for skill, count in co_top:
-            pct = count / skill_counter[selected_skill] * 100
-            st.markdown(f"- **{skill}** — {count} jobs ({pct:.0f}%)")
-    else:
-        st.info(f"No co-occurring skills found for {selected_skill}")

@@ -1,18 +1,16 @@
 import streamlit as st
-import pandas as pd
 import plotly.graph_objects as go
 from collections import Counter, defaultdict
 
 from app.utils.supabase_client import get_client
-from app.components.charts import LAYOUT_DEFAULTS, ROLE_COLORS
+from app.components.charts import LAYOUT_DEFAULTS
 from app.components.filters import render_role_scope
-from pipeline.ai_skills_analyzer import AI_SKILLS_TAXONOMY, SKILL_TIERS
 
 st.header("Learning Roadmap")
 st.caption(
-    "What should you learn and in what order to maximize your career in AI/data? "
-    "Explore skill progressions by seniority, co-occurrence networks, role-based "
-    "learning paths, and the AI skills ladder."
+    "What should you learn and in what order? "
+    "See how skill requirements change with seniority, and get a personalised "
+    "learning path for your target role."
 )
 
 selected_roles = render_role_scope(key="learning_roadmap")
@@ -50,8 +48,8 @@ listings = [r for r in _all_listings if not selected_roles or r.get("role_catego
 
 if not listings:
     st.info(
-        "No classified data yet. Run the pipeline first:\n\n"
-        "```bash\npython pipeline/run_pipeline.py\n```"
+        "No data available yet. Data is refreshed automatically on "
+        "Mondays and Thursdays — check back soon!"
     )
     st.stop()
 
@@ -194,121 +192,10 @@ else:
 st.markdown("---")
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Section 2: Skill Co-occurrence Network
+# Section 2: Role-Based Learning Paths
 # ═══════════════════════════════════════════════════════════════════════════
 
-st.subheader("2. Skill Co-occurrence Network")
-st.markdown(
-    "Select a skill you already know. We show which other skills employers "
-    "commonly pair it with, creating a natural learning path."
-)
-
-top50_skills = [s for s, _ in global_skill_counter.most_common(50)]
-
-if top50_skills:
-    selected_skill = st.selectbox(
-        "Select a starting skill",
-        top50_skills,
-        help="Pick a skill you already know to discover what to learn next.",
-    )
-
-    if selected_skill:
-        # First-degree co-occurrences
-        co_counter = Counter()
-        listings_with_skill = 0
-        for skill_set in all_skill_sets:
-            if selected_skill in skill_set:
-                listings_with_skill += 1
-                for s in skill_set:
-                    if s != selected_skill:
-                        co_counter[s] += 1
-
-        if co_counter and listings_with_skill > 0:
-            top15_co = co_counter.most_common(15)
-            co_skills = [s for s, _ in top15_co]
-            co_pcts = [c / listings_with_skill * 100 for _, c in top15_co]
-
-            st.markdown(
-                f"**If you know {selected_skill}**, employers also look for "
-                f"these skills (based on {listings_with_skill:,} listings):"
-            )
-
-            fig = go.Figure(
-                go.Bar(
-                    x=co_pcts[::-1],
-                    y=co_skills[::-1],
-                    orientation="h",
-                    marker_color="#0ea5e9",
-                    text=[f"{p:.0f}%" for p in co_pcts[::-1]],
-                    textposition="outside",
-                )
-            )
-            fig.update_layout(
-                **LAYOUT_DEFAULTS,
-                title=f"Top Skills Co-occurring with {selected_skill}",
-                xaxis_title="% of listings that also require this skill",
-                height=max(350, len(co_skills) * 30),
-                showlegend=False,
-            )
-            st.plotly_chart(fig, width="stretch")
-
-            # Second-degree connections
-            bridge_skill = co_skills[0]  # #1 co-occurring skill
-            already_shown = set(co_skills) | {selected_skill}
-
-            co2_counter = Counter()
-            listings_with_bridge = 0
-            for skill_set in all_skill_sets:
-                if bridge_skill in skill_set:
-                    listings_with_bridge += 1
-                    for s in skill_set:
-                        if s not in already_shown:
-                            co2_counter[s] += 1
-
-            if co2_counter and listings_with_bridge > 0:
-                st.markdown(
-                    f"**Second-degree connections** via **{bridge_skill}** "
-                    f"(top co-occurrence of {selected_skill}):"
-                )
-                top10_co2 = co2_counter.most_common(10)
-                co2_skills = [s for s, _ in top10_co2]
-                co2_pcts = [c / listings_with_bridge * 100 for _, c in top10_co2]
-
-                fig2 = go.Figure(
-                    go.Bar(
-                        x=co2_pcts[::-1],
-                        y=co2_skills[::-1],
-                        orientation="h",
-                        marker_color="#14b8a6",
-                        text=[f"{p:.0f}%" for p in co2_pcts[::-1]],
-                        textposition="outside",
-                    )
-                )
-                fig2.update_layout(
-                    **LAYOUT_DEFAULTS,
-                    title=f"Second-Degree Skills (via {bridge_skill})",
-                    xaxis_title="% of listings that also require this skill",
-                    height=max(300, len(co2_skills) * 30),
-                    showlegend=False,
-                )
-                st.plotly_chart(fig2, width="stretch")
-
-                st.markdown(
-                    f"**Suggested learning path:** {selected_skill} "
-                    f"-> {bridge_skill} -> {co2_skills[0]}"
-                )
-        else:
-            st.info(f"No co-occurring skills found for {selected_skill}.")
-else:
-    st.info("Not enough skill data to build co-occurrence analysis.")
-
-st.markdown("---")
-
-# ═══════════════════════════════════════════════════════════════════════════
-# Section 3: Role-Based Learning Paths
-# ═══════════════════════════════════════════════════════════════════════════
-
-st.subheader("3. Role-Based Learning Paths")
+st.subheader("2. Role-Based Learning Paths")
 st.markdown(
     "Select your target role and seniority to see which skills are "
     "foundational, which differentiate you, and which are specialist niches."
@@ -427,103 +314,6 @@ else:
         "Try a different combination."
     )
 
-st.markdown("---")
-
-# ═══════════════════════════════════════════════════════════════════════════
-# Section 4: AI Skills Ladder
-# ═══════════════════════════════════════════════════════════════════════════
-
-st.subheader("4. AI Skills Ladder")
-st.markdown(
-    "A tiered progression through AI skills, from foundational literacy to "
-    "specialist capabilities. Each tier shows current market demand based on "
-    "actual job listings."
-)
-
-# Compute AI category demand from listings (keyword matching)
-@st.cache_data(ttl=3600)
-def compute_ai_demand(_listings):
-    """Count how many listings mention each AI skill category."""
-    category_counts = Counter()
-    total = 0
-    for row in _listings:
-        skills = row.get("technical_skills") or []
-        combined = " ".join(s.lower() for s in skills)
-        if not combined:
-            continue
-        total += 1
-        for category, keywords in AI_SKILLS_TAXONOMY.items():
-            for kw in keywords:
-                if kw in combined:
-                    category_counts[category] += 1
-                    break  # Count each category once per listing
-    return category_counts, total
-
-
-ai_category_counts, ai_total = compute_ai_demand(listings)
-
-TIER_COLORS = {
-    "Tier 1: Foundational": "#0ea5e9",
-    "Tier 2: Professional": "#14b8a6",
-    "Tier 3: Specialist": "#8b5cf6",
-}
-
-TIER_RECOMMENDATIONS = {
-    "Tier 1: Foundational": "Start here -- build AI literacy and learn to use AI tools effectively in your daily work.",
-    "Tier 2: Professional": "Build this -- develop the technical depth that makes you a competitive AI/data professional.",
-    "Tier 3: Specialist": "Specialize in this -- pick one or two areas to become the go-to expert in your organization.",
-}
-
-for tier_name, tier_categories in SKILL_TIERS.items():
-    color = TIER_COLORS.get(tier_name, "#64748b")
-    rec = TIER_RECOMMENDATIONS.get(tier_name, "")
-
-    with st.expander(f"**{tier_name}**", expanded=True):
-        st.markdown(f"*{rec}*")
-
-        if ai_total > 0:
-            cat_names = []
-            cat_counts = []
-            cat_pcts = []
-            for cat in tier_categories:
-                count = ai_category_counts.get(cat, 0)
-                pct = count / ai_total * 100
-                cat_names.append(cat)
-                cat_counts.append(count)
-                cat_pcts.append(pct)
-
-            fig = go.Figure(
-                go.Bar(
-                    x=cat_counts,
-                    y=cat_names,
-                    orientation="h",
-                    marker_color=color,
-                    text=[f"{c:,} ({p:.1f}%)" for c, p in zip(cat_counts, cat_pcts)],
-                    textposition="outside",
-                )
-            )
-            fig.update_layout(
-                **LAYOUT_DEFAULTS,
-                margin=dict(l=20, r=80, t=10, b=20),
-                height=max(180, len(cat_names) * 45),
-                xaxis_title="Number of listings mentioning this category",
-                showlegend=False,
-                yaxis=dict(autorange="reversed"),
-            )
-            st.plotly_chart(fig, width="stretch")
-        else:
-            st.caption("No skill data available to compute demand.")
-
-# Summary recommendation
-st.markdown("### Recommended Progression")
-st.markdown(
-    "1. **Start here** -- Master AI tools and prompt engineering "
-    "(Tier 1). These are rapidly becoming table stakes.\n"
-    "2. **Build this** -- Develop core ML/DL skills, learn to work with LLMs, "
-    "and understand MLOps (Tier 2). This is where career value compounds.\n"
-    "3. **Specialize in this** -- Choose a Tier 3 niche (Agents, Safety, "
-    "Computer Vision, or Governance) based on your interests and role trajectory."
-)
 
 # ---------------------------------------------------------------------------
 # Disclaimer

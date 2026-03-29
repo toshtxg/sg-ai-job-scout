@@ -78,7 +78,7 @@ _full_analysis, _full_data = load_and_analyze()
 all_data = [r for r in _full_data if not selected_roles or r.get("role_category") in selected_roles]
 
 if not all_data:
-    st.info("No classified data yet. Run the pipeline first.")
+    st.info("No data available yet. Data is refreshed automatically on Mondays and Thursdays — check back soon!")
     st.stop()
 
 # Re-analyze with filtered data
@@ -95,7 +95,7 @@ col1, col2, col3 = st.columns(3)
 col1.metric("Total Listings Analyzed", f"{total:,}")
 col2.metric("Listings Mentioning AI Skills", f"{with_ai:,}")
 col3.metric(
-    "AI Penetration",
+    "% Mentioning AI Skills",
     f"{with_ai / total * 100:.0f}%" if total else "0%",
 )
 
@@ -250,69 +250,6 @@ if role_ai_matrix:
         xaxis_tickangle=-45,
     )
     st.plotly_chart(fig, width="stretch")
-
-# ── The Key Question ──
-st.markdown("### The Key Question: Surface-Level vs Deep AI Skills")
-st.caption(
-    "Are employers asking for basic AI tool usage, or deeper technical AI capabilities?"
-)
-
-surface_cats = ["AI Literacy & Augmentation", "Prompt Engineering"]
-deep_cats = [
-    "LLM & GenAI Development",
-    "AI Agents & Automation",
-    "AI Evaluation & Safety",
-    "Deep Learning",
-    "NLP",
-    "Computer Vision",
-    "MLOps & Infrastructure",
-    "Responsible AI & Governance",
-]
-
-surface_count = sum(cat_counts.get(c, 0) for c in surface_cats)
-deep_count = sum(cat_counts.get(c, 0) for c in deep_cats)
-
-col1, col2 = st.columns(2)
-with col1:
-    st.metric(
-        "Surface AI (tools, prompting)",
-        f"{surface_count:,} listings",
-    )
-    for cat in surface_cats:
-        c = cat_counts.get(cat, 0)
-        st.caption(f"  {cat}: {c}")
-
-with col2:
-    st.metric(
-        "Deep AI (build, evaluate, deploy)",
-        f"{deep_count:,} listings",
-    )
-    for cat in deep_cats:
-        c = cat_counts.get(cat, 0)
-        if c > 0:
-            st.caption(f"  {cat}: {c}")
-
-# Donut chart
-fig = go.Figure(
-    go.Pie(
-        labels=["Surface AI\n(tools & prompting)", "Deep AI\n(build, evaluate, deploy)"],
-        values=[surface_count, deep_count],
-        hole=0.5,
-        marker=dict(colors=["#0ea5e9", "#14b8a6"]),
-        textinfo="label+percent",
-        textfont=dict(size=14),
-    )
-)
-fig.update_layout(
-    template="plotly_dark",
-    paper_bgcolor="rgba(0,0,0,0)",
-    plot_bgcolor="rgba(0,0,0,0)",
-    font=dict(color="#fafafa"),
-    height=350,
-    margin=dict(l=20, r=20, t=10, b=20),
-    showlegend=False,
-)
-st.plotly_chart(fig, width="stretch")
 
 # ── Methodology ──
 with st.expander("Methodology"):

@@ -34,8 +34,8 @@ snapshot_data, all_snapshots = load_dashboard_data()
 
 if not snapshot_data:
     st.info(
-        "No data yet. Run the pipeline first:\n\n"
-        "```bash\npython pipeline/run_pipeline.py\n```"
+        "No data available yet. Data is refreshed automatically on "
+        "Mondays and Thursdays — check back soon!"
     )
     st.stop()
 
