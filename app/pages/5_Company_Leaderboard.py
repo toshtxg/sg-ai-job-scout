@@ -212,8 +212,19 @@ if selected_company:
     # --- All Open Roles ---
     st.markdown("#### Open Roles")
     roles_display = company_df[
-        ["title", "role_category", "seniority_level", "posting_date"]
+        ["title", "role_category", "seniority_level", "salary_min", "salary_max", "posting_date"]
     ].copy()
+    roles_display["Salary"] = roles_display.apply(
+        lambda r: (
+            f"${r['salary_min']:,.0f}–${r['salary_max']:,.0f}"
+            if pd.notna(r["salary_min"]) and pd.notna(r["salary_max"])
+            else f"${r['salary_max']:,.0f}" if pd.notna(r["salary_max"])
+            else f"${r['salary_min']:,.0f}" if pd.notna(r["salary_min"])
+            else "—"
+        ),
+        axis=1,
+    )
+    roles_display = roles_display.drop(columns=["salary_min", "salary_max"])
     roles_display = roles_display.rename(
         columns={
             "title": "Title",
