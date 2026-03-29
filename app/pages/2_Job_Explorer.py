@@ -130,12 +130,29 @@ for row in filtered[:100]:  # Show first 100
         header += f"  {wm_tag}"
 
     with st.expander(header):
-        col1, col2, col3, col4 = st.columns([2, 2, 2, 1])
-        col1.markdown(f"**Role:** {role}")
-        col2.markdown(f"**Seniority:** {seniority}")
-        col3.markdown(f"**Posted:** {posting_date}")
+        # Top row: key info + apply button
+        meta_html = (
+            f'<div style="display:flex;gap:16px;align-items:center;'
+            f'flex-wrap:wrap;margin-bottom:8px;">'
+            f'<span style="background:#0f172a;border:1px solid #334155;'
+            f'border-radius:8px;padding:4px 12px;font-size:0.85rem;">'
+            f'{role}</span>'
+            f'<span style="background:#0f172a;border:1px solid #334155;'
+            f'border-radius:8px;padding:4px 12px;font-size:0.85rem;">'
+            f'{seniority}</span>'
+            f'<span style="background:#0f172a;border:1px solid #334155;'
+            f'border-radius:8px;padding:4px 12px;font-size:0.85rem;">'
+            f'{wm_tag} {work_mode}</span>'
+            f'<span style="color:#94a3b8;font-size:0.85rem;">'
+            f'{row.get("industry", "")}</span>'
+            f'<span style="color:#64748b;font-size:0.8rem;margin-left:auto;">'
+            f'Posted {posting_date}</span>'
+            f'</div>'
+        )
+        st.markdown(meta_html, unsafe_allow_html=True)
+
         if source_url:
-            col4.link_button("Apply →", source_url)
+            st.link_button("Apply →", source_url)
 
         # Skills tags
         tech_skills = row.get("technical_skills") or []
@@ -148,21 +165,15 @@ for row in filtered[:100]:  # Show first 100
             )
             st.markdown(skills_html, unsafe_allow_html=True)
 
-        # Additional info
-        info_cols = st.columns(3)
-        info_cols[0].markdown(
-            f"**Work Mode:** {wm_tag} {work_mode}"
-        )
-        info_cols[1].markdown(
-            f"**AI/ML:** {'Yes' if row.get('requires_ai_ml') else 'No'}"
-        )
-        info_cols[2].markdown(f"**Industry:** {row.get('industry', 'N/A')}")
-
         # Description preview
         desc = raw.get("description", "")
         if desc:
-            st.markdown("**Description:**")
-            st.text(desc[:500] + ("..." if len(desc) > 500 else ""))
+            st.markdown(
+                f'<div style="color:#cbd5e1;font-size:0.9rem;line-height:1.5;'
+                f'margin-top:8px;white-space:pre-wrap;">'
+                f'{desc[:600]}{"..." if len(desc) > 600 else ""}</div>',
+                unsafe_allow_html=True,
+            )
 
 if len(filtered) > 100:
     st.info(f"Showing first 100 of {len(filtered)} results. Use filters to narrow down.")
