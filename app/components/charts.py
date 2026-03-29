@@ -100,8 +100,9 @@ def create_salary_comparison_chart(avg_salary_by_role: dict) -> go.Figure:
         title="Salary Range by Role (SGD/month)",
         barmode="overlay",
         showlegend=True,
-        legend=dict(orientation="h", yanchor="bottom", y=1.02),
-        height=max(300, len(roles) * 40 + 100),
+        legend=dict(orientation="h", yanchor="bottom", y=1.08, xanchor="center", x=0.5),
+        margin=dict(l=20, r=20, t=60, b=20),
+        height=max(300, len(roles) * 40 + 120),
     )
     return fig
 

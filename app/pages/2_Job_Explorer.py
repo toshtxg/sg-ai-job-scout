@@ -1,4 +1,7 @@
 import streamlit as st
+
+st.set_page_config(layout="wide")
+
 import pandas as pd
 
 from app.utils.supabase_client import get_client

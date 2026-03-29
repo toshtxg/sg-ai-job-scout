@@ -1,5 +1,7 @@
 import streamlit as st
 
+st.set_page_config(layout="wide")
+
 from app.utils.supabase_client import get_client
 from app.components.charts import (
     create_listings_by_role_chart,
@@ -43,7 +45,8 @@ latest = snapshot_data[0]
 
 # Extract top role and top skill
 listings_by_role = latest.get("listings_by_role") or {}
-top_role = max(listings_by_role, key=listings_by_role.get) if listings_by_role else "N/A"
+filtered_roles = {r: c for r, c in listings_by_role.items() if r != "Other"}
+top_role = max(filtered_roles, key=filtered_roles.get) if filtered_roles else "N/A"
 
 top_skills = latest.get("top_skills") or []
 top_skill = top_skills[0]["skill"] if top_skills else "N/A"

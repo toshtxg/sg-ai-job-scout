@@ -11,7 +11,7 @@ from pipeline.ai_skills_analyzer import (
     SKILL_MATURITY,
 )
 
-st.set_page_config(page_title="AI Skills Deep Dive", layout="wide") if not hasattr(st, "_is_running_with_streamlit") else None
+st.set_page_config(layout="wide")
 
 st.header("AI Skills Deep Dive")
 st.caption(
