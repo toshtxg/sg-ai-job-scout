@@ -3,7 +3,7 @@ import logging
 import os
 import time
 
-from openai import OpenAI
+from openai import OpenAI, APIError
 
 from pipeline.skills_normalizer import normalize_skills
 
@@ -67,6 +67,12 @@ def classify_listing(
             ],
         )
         return json.loads(response.choices[0].message.content)
+    except APIError as e:
+        if e.code == "insufficient_quota":
+            logger.error("OpenAI quota exhausted — aborting classification.")
+            raise
+        logger.error(f"Classification failed for '{title}': {e}")
+        return None
     except Exception as e:
         logger.error(f"Classification failed for '{title}': {e}")
         return None
@@ -123,15 +129,33 @@ def classify_unprocessed(supabase_client) -> int:
     logger.info(f"Found {len(unclassified)} unclassified listings")
 
     count = 0
+    consecutive_failures = 0
     for listing in unclassified:
-        result = classify_listing(
-            listing["title"],
-            listing.get("company"),
-            listing.get("description"),
-        )
+        try:
+            result = classify_listing(
+                listing["title"],
+                listing.get("company"),
+                listing.get("description"),
+            )
+        except APIError as e:
+            if e.code == "insufficient_quota":
+                logger.error(
+                    f"Quota exhausted after classifying {count} listings. "
+                    f"{len(unclassified) - count} remain."
+                )
+                break
+            result = None
+
         if result is None:
+            consecutive_failures += 1
+            if consecutive_failures >= 5:
+                logger.error(
+                    f"5 consecutive failures — stopping. Classified {count} so far."
+                )
+                break
             continue
 
+        consecutive_failures = 0
         result = _enforce_enums(result)
 
         row = {
