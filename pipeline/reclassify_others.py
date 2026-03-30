@@ -14,7 +14,7 @@ load_dotenv()
 
 from supabase import create_client
 
-from pipeline.classifier import classify_listing, _enforce_enums, VALID_ROLES
+from pipeline.classifier import CLASSIFIER_MODEL, VALID_ROLES, _enforce_enums, classify_listing
 from pipeline.skills_normalizer import normalize_skills
 
 logging.basicConfig(
@@ -107,7 +107,7 @@ def main():
             "requires_ai_ml": result.get("requires_ai_ml", False),
             "remote_hybrid_onsite": result.get("remote_hybrid_onsite", "Unknown"),
             "industry": result.get("industry", "Technology"),
-            "model_used": "gpt-5.4-mini",
+            "model_used": CLASSIFIER_MODEL,
         }
 
         try:

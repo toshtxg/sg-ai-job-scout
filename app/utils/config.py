@@ -18,6 +18,8 @@ def get_secret(key: str) -> str:
 SUPABASE_URL = get_secret("SUPABASE_URL")
 SUPABASE_KEY = get_secret("SUPABASE_KEY")
 OPENAI_API_KEY = get_secret("OPENAI_API_KEY")
+OPENAI_CLASSIFIER_MODEL = get_secret("OPENAI_CLASSIFIER_MODEL") or "gpt-5-nano"
+OPENAI_SUMMARY_MODEL = get_secret("OPENAI_SUMMARY_MODEL") or "gpt-5-nano"
 
 SEARCH_TERMS = [
     "data scientist",

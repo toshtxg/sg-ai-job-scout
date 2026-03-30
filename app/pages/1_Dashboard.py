@@ -221,7 +221,7 @@ st.markdown("### AI Market Summary")
 def generate_ai_summary(snapshot_json: str):
     """Generate a narrative market summary using GPT."""
     import json
-    from utils.config import OPENAI_API_KEY
+    from app.utils.config import OPENAI_API_KEY, OPENAI_SUMMARY_MODEL
 
     if not OPENAI_API_KEY:
         return None
@@ -243,7 +243,7 @@ Snapshot data:
 - Snapshot date: {snapshot.get('snapshot_date', 'today')}"""
 
         response = client.chat.completions.create(
-            model="gpt-5.4-mini",
+            model=OPENAI_SUMMARY_MODEL,
             messages=[
                 {
                     "role": "system",

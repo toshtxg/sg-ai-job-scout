@@ -1,6 +1,6 @@
 # SG AI Job Market Scout
 
-A Streamlit dashboard that tracks and analyzes Singapore's AI, data science, and analytics job market. Job listings are sourced from [MyCareersFuture.gov.sg](https://www.mycareersfuture.gov.sg/), classified using GPT-5.4-mini, and presented through interactive visualizations.
+A Streamlit dashboard that tracks and analyzes Singapore's AI, data science, and analytics job market. Job listings are sourced from [MyCareersFuture.gov.sg](https://www.mycareersfuture.gov.sg/), classified using GPT-5-nano by default, and presented through interactive visualizations.
 
 **Live app:** [sg-ai-job-scout.streamlit.app](https://sg-ai-job-scout.streamlit.app/)
 
@@ -35,20 +35,20 @@ sg-ai-job-scout/
 │   ├── scrapers/
 │   │   ├── base_scraper.py       # Abstract base with backoff
 │   │   └── mycareersfuture.py    # MCF API scraper (59 search terms)
-│   ├── classifier.py             # GPT-5.4-mini structured classification
+│   ├── classifier.py             # GPT-5-nano structured classification
 │   ├── ai_skills_analyzer.py     # 281-keyword AI skills taxonomy
 │   ├── skills_normalizer.py      # Canonical skill name mapping
 │   ├── snapshot.py               # Market snapshot aggregation
 │   ├── reclassify_others.py      # Re-classification utility
 │   └── run_pipeline.py           # Pipeline orchestrator
 ├── sql/schema.sql                # Database DDL (run in Supabase)
-├── .github/workflows/scrape.yml  # Automated scraping (Mon & Thu 2am UTC)
+├── .github/workflows/scrape.yml  # Automated scraping (daily at 2am UTC)
 ├── pyproject.toml
 ├── requirements.txt
 └── .env.example
 ```
 
-**Data flow:** MyCareersFuture API → Supabase (raw_listings) → GPT-5.4-mini classifier → Supabase (classified_listings) → Snapshot aggregation → Streamlit dashboard
+**Data flow:** MyCareersFuture API → Supabase (raw_listings) → GPT-5-nano classifier → Supabase (classified_listings) → Snapshot aggregation → Streamlit dashboard
 
 ## Pages
 
@@ -78,9 +78,9 @@ sg-ai-job-scout/
 |-----------|-----------|
 | Frontend | Streamlit, Plotly |
 | Database | Supabase (PostgreSQL) |
-| AI Classification | OpenAI GPT-5.4-mini (JSON mode) |
+| AI Classification | OpenAI GPT-5-nano (JSON mode, configurable) |
 | Data Source | MyCareersFuture.gov.sg (JSON API) |
-| Automation | GitHub Actions (cron: Mon & Thu 2am UTC) |
+| Automation | GitHub Actions (cron: daily at 2am UTC) |
 | Language | Python 3.11+ |
 
 ## Setup
@@ -115,7 +115,7 @@ Or create a `.env` file (see `.env.example`).
 python -m pipeline.run_pipeline
 ```
 
-Scrapes jobs, classifies with GPT-5.4-mini, generates a market snapshot. Subsequent runs only process new/unclassified listings.
+Scrapes jobs, classifies with GPT-5-nano by default, generates a market snapshot. Subsequent runs only process new/unclassified listings.
 
 ### 5. Launch the dashboard
 
@@ -137,10 +137,11 @@ streamlit run app/Home.py
 
 ## GitHub Actions (Automated Scraping)
 
-The pipeline runs automatically on Monday and Thursday at 2 AM UTC.
+The pipeline runs automatically every day at 2 AM UTC.
 
 1. Go to your GitHub repo → Settings → Secrets and variables → Actions
 2. Add repository secrets: `SUPABASE_URL`, `SUPABASE_KEY`, `OPENAI_API_KEY`
+3. Optional overrides: `OPENAI_CLASSIFIER_MODEL`, `OPENAI_SUMMARY_MODEL`
 
 You can also trigger manually from Actions → Scrape & Classify → Run workflow.
 

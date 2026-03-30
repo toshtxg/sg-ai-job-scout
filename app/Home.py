@@ -37,11 +37,11 @@ with st.sidebar:
     )
     st.markdown("**Sources:** MyCareersFuture.gov.sg")
     st.markdown(
-        "**Methodology:** GPT-5.4-mini classifies each listing into role "
+        "**Methodology:** GPT-5-nano classifies each listing into role "
         "category, seniority, skills, and industry."
     )
     st.markdown(
-        "**Schedule:** Pipeline runs Monday & Thursday at 2 AM UTC via "
+        "**Schedule:** Pipeline runs daily at 2 AM UTC via "
         "GitHub Actions."
     )
     st.markdown("---")

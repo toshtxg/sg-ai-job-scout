@@ -10,6 +10,7 @@ from pipeline.skills_normalizer import normalize_skills
 logger = logging.getLogger(__name__)
 
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
+CLASSIFIER_MODEL = os.environ.get("OPENAI_CLASSIFIER_MODEL", "gpt-5-nano")
 
 SYSTEM_PROMPT = (
     "You are a job market analyst specializing in AI, data, and analytics roles "
@@ -49,10 +50,10 @@ Return JSON:
 def classify_listing(
     title: str, company: str, description: str
 ) -> dict | None:
-    """Classify a single job listing using GPT-5.4-mini."""
+    """Classify a single job listing using the configured OpenAI model."""
     try:
         response = client.chat.completions.create(
-            model="gpt-5.4-mini",
+            model=CLASSIFIER_MODEL,
             response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
@@ -168,7 +169,7 @@ def classify_unprocessed(supabase_client) -> int:
             "requires_ai_ml": result.get("requires_ai_ml", False),
             "remote_hybrid_onsite": result.get("remote_hybrid_onsite", "Unknown"),
             "industry": result.get("industry", "Technology"),
-            "model_used": "gpt-5.4-mini",
+            "model_used": CLASSIFIER_MODEL,
         }
 
         try:
