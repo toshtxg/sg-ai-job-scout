@@ -3,6 +3,7 @@ import streamlit as st
 st.set_page_config(layout="wide")
 
 import pandas as pd
+from datetime import date, datetime, timedelta
 
 from app.utils.supabase_client import get_client
 from app.components.charts import (
@@ -13,6 +14,35 @@ from app.components.charts import (
 from app.components.metrics import render_metric_row
 
 st.header("Dashboard")
+
+
+def _parse_posting_date(value):
+    """Best-effort parse for Supabase date/datetime strings."""
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00")).date()
+    except ValueError:
+        try:
+            return date.fromisoformat(str(value)[:10])
+        except ValueError:
+            return None
+
+
+def _filter_recent_rows(rows, *, days=7):
+    """Keep only rows posted in the last N days and sort newest first."""
+    cutoff = datetime.now().date() - timedelta(days=days)
+    filtered = []
+    for row in rows or []:
+        raw = row.get("raw_listings") or {}
+        posting_date = _parse_posting_date(raw.get("posting_date"))
+        if posting_date and posting_date >= cutoff:
+            filtered.append(row)
+    filtered.sort(
+        key=lambda row: _parse_posting_date((row.get("raw_listings") or {}).get("posting_date")) or date.min,
+        reverse=True,
+    )
+    return filtered
 
 
 @st.cache_data(ttl=3600)
@@ -38,21 +68,26 @@ def load_dashboard_data():
 def load_recent_listings():
     """Load the most recent classified listings for 'New This Week'."""
     client = get_client()
-    from datetime import datetime, timedelta
-
-    cutoff = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
-    resp = (
+    query = (
         client.table("classified_listings")
         .select(
             "role_category, seniority_level, remote_hybrid_onsite, "
             "raw_listings!listing_id(title, company, salary_min, salary_max, "
             "posting_date, source_url)"
         )
-        .order("created_at", desc=True)
-        .limit(200)
-        .execute()
     )
-    return resp.data
+
+    try:
+        resp = query.order("classified_at", desc=True).limit(500).execute()
+        return _filter_recent_rows(resp.data)
+    except Exception:
+        # Older deployed databases may not match the latest ordering column.
+        # Fall back to an unordered fetch so the dashboard still renders.
+        try:
+            resp = query.limit(500).execute()
+            return _filter_recent_rows(resp.data)
+        except Exception:
+            return []
 
 
 snapshot_data, all_snapshots = load_dashboard_data()
