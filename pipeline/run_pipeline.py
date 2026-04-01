@@ -114,9 +114,9 @@ def store_listings(listings: list[dict], client) -> int:
 
 def main():
     url = os.environ.get("SUPABASE_URL")
-    key = os.environ.get("SUPABASE_KEY")
+    key = os.environ.get("SUPABASE_SERVICE_KEY")
     if not url or not key:
-        logger.error("SUPABASE_URL and SUPABASE_KEY must be set")
+        logger.error("SUPABASE_URL and SUPABASE_SERVICE_KEY must be set")
         sys.exit(1)
 
     client = create_client(url, key)

@@ -17,6 +17,7 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_CLASSIFIER_MODEL: ${{ secrets.OPENAI_CLASSIFIER_MODEL }}
           OPENAI_SUMMARY_MODEL: ${{ secrets.OPENAI_SUMMARY_MODEL }}

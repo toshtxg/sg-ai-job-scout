@@ -42,3 +42,14 @@ CREATE TABLE IF NOT EXISTS market_snapshots (
     new_listings_count INTEGER,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Row-Level Security
+-- Enable RLS on all tables (pipeline uses service_role key which bypasses RLS)
+ALTER TABLE raw_listings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE classified_listings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE market_snapshots ENABLE ROW LEVEL SECURITY;
+
+-- Allow public read-only access for the website (anon key)
+CREATE POLICY "Public read" ON raw_listings FOR SELECT TO anon USING (true);
+CREATE POLICY "Public read" ON classified_listings FOR SELECT TO anon USING (true);
+CREATE POLICY "Public read" ON market_snapshots FOR SELECT TO anon USING (true);
