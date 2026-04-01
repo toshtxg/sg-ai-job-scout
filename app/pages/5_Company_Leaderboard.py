@@ -210,9 +210,11 @@ if selected_company:
     col3.metric("AI/ML Required", f"{ai_ml_pct:.0f}%")
 
     # --- All Open Roles ---
+    WORK_MODE_ICONS = {"Remote": "🏠", "Hybrid": "🔄", "Onsite": "🏢"}
     st.markdown("#### Open Roles")
     roles_display = company_df[
-        ["title", "role_category", "seniority_level", "salary_min", "salary_max", "posting_date"]
+        ["title", "role_category", "seniority_level", "salary_min", "salary_max",
+         "remote_hybrid_onsite", "posting_date", "source_url"]
     ].copy()
     roles_display["Salary"] = roles_display.apply(
         lambda r: (
@@ -224,17 +226,27 @@ if selected_company:
         ),
         axis=1,
     )
-    roles_display = roles_display.drop(columns=["salary_min", "salary_max"])
+    roles_display["Mode"] = roles_display["remote_hybrid_onsite"].apply(
+        lambda wm: f"{WORK_MODE_ICONS.get(wm, '')} {wm}".strip() if wm else "Unknown"
+    )
+    roles_display = roles_display.drop(columns=["salary_min", "salary_max", "remote_hybrid_onsite"])
     roles_display = roles_display.rename(
         columns={
             "title": "Title",
             "role_category": "Role Category",
             "seniority_level": "Seniority",
             "posting_date": "Posted",
+            "source_url": "Apply",
         }
     )
+    roles_display = roles_display[["Title", "Role Category", "Seniority", "Salary", "Mode", "Posted", "Apply"]]
     roles_display = roles_display.sort_values("Posted", ascending=False)
-    st.dataframe(roles_display, width="stretch", hide_index=True)
+    st.dataframe(
+        roles_display,
+        width="stretch",
+        hide_index=True,
+        column_config={"Apply": st.column_config.LinkColumn("Apply", display_text="View →")},
+    )
 
     # --- Salary Distribution ---
     st.markdown("#### Salary Distribution")
