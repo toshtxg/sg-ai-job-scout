@@ -42,6 +42,19 @@ def _parse_utc_datetime(value):
     return parsed.astimezone(timezone.utc)
 
 
+def _format_age(delta):
+    """Render a compact age label for freshness."""
+    total_seconds = int(max(delta.total_seconds(), 0))
+    days, rem = divmod(total_seconds, 86400)
+    hours, rem = divmod(rem, 3600)
+    minutes, _ = divmod(rem, 60)
+    if days > 0:
+        return f"{days}d ago"
+    if hours > 0:
+        return f"{hours}h ago"
+    return f"{minutes}m ago"
+
+
 def _filter_recent_rows(rows, *, days=7):
     """Keep only rows posted in the last N days and sort newest first."""
     cutoff = datetime.now().date() - timedelta(days=days)
@@ -132,8 +145,18 @@ if not snapshot_data:
 latest = snapshot_data[0]
 latest_pull_dt = _parse_utc_datetime(latest_pull_timestamp)
 if latest_pull_dt:
+    pull_age = _format_age(datetime.now(timezone.utc) - latest_pull_dt)
+    st.sidebar.metric(
+        label="Latest Data Pull (UTC)",
+        value=f"{latest_pull_dt:%Y-%m-%d %H:%M}",
+        delta=pull_age,
+    )
     st.caption(f"Latest data pull: {latest_pull_dt:%Y-%m-%d %H:%M} UTC")
 else:
+    st.sidebar.metric(
+        label="Latest Data Pull (UTC)",
+        value="Unknown",
+    )
     st.caption("Latest data pull: unknown")
 
 # Extract top role and top skill
