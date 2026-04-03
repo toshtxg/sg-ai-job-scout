@@ -3,7 +3,7 @@ import streamlit as st
 st.set_page_config(layout="wide")
 
 import pandas as pd
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from app.utils.supabase_client import get_client
 from app.components.charts import (
@@ -27,6 +27,19 @@ def _parse_posting_date(value):
             return date.fromisoformat(str(value)[:10])
         except ValueError:
             return None
+
+
+def _parse_utc_datetime(value):
+    """Parse datetime text and normalize to UTC."""
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
 
 
 def _filter_recent_rows(rows, *, days=7):
@@ -90,7 +103,24 @@ def load_recent_listings():
             return []
 
 
+@st.cache_data(ttl=300)
+def load_latest_pull_timestamp():
+    """Load most recent scrape timestamp from raw listings."""
+    client = get_client()
+    latest_pull = (
+        client.table("raw_listings")
+        .select("scraped_at")
+        .order("scraped_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+    if not latest_pull.data:
+        return None
+    return latest_pull.data[0].get("scraped_at")
+
+
 snapshot_data, all_snapshots = load_dashboard_data()
+latest_pull_timestamp = load_latest_pull_timestamp()
 
 if not snapshot_data:
     st.info(
@@ -100,6 +130,11 @@ if not snapshot_data:
     st.stop()
 
 latest = snapshot_data[0]
+latest_pull_dt = _parse_utc_datetime(latest_pull_timestamp)
+if latest_pull_dt:
+    st.caption(f"Latest data pull: {latest_pull_dt:%Y-%m-%d %H:%M} UTC")
+else:
+    st.caption("Latest data pull: unknown")
 
 # Extract top role and top skill
 listings_by_role = latest.get("listings_by_role") or {}
