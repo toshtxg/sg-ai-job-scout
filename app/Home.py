@@ -1,4 +1,7 @@
 import streamlit as st
+from datetime import datetime, timezone
+
+from app.utils.supabase_client import get_client
 
 st.set_page_config(
     page_title="SG AI Job Market Scout",
@@ -6,6 +9,49 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+
+def _parse_utc_datetime(value):
+    """Parse datetime text and normalize to UTC."""
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _format_age(delta):
+    """Render a compact age label for freshness."""
+    total_seconds = int(max(delta.total_seconds(), 0))
+    days, rem = divmod(total_seconds, 86400)
+    hours, rem = divmod(rem, 3600)
+    minutes, _ = divmod(rem, 60)
+    if days > 0:
+        return f"{days}d ago"
+    if hours > 0:
+        return f"{hours}h ago"
+    return f"{minutes}m ago"
+
+
+@st.cache_data(ttl=300)
+def _load_latest_pull_timestamp():
+    """Load most recent scrape timestamp from raw listings."""
+    client = get_client()
+    latest_pull = (
+        client.table("raw_listings")
+        .select("scraped_at")
+        .order("scraped_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+    if not latest_pull.data:
+        return None
+    return latest_pull.data[0].get("scraped_at")
+
 
 # Custom CSS
 st.markdown(
@@ -26,6 +72,22 @@ st.markdown(
 
 # Sidebar
 with st.sidebar:
+    latest_pull_timestamp = _load_latest_pull_timestamp()
+    latest_pull_dt = _parse_utc_datetime(latest_pull_timestamp)
+    if latest_pull_dt:
+        pull_age = _format_age(datetime.now(timezone.utc) - latest_pull_dt)
+        st.metric(
+            label="Latest Data Pull (UTC)",
+            value=f"{latest_pull_dt:%Y-%m-%d %H:%M}",
+            delta=pull_age,
+        )
+    else:
+        st.metric(
+            label="Latest Data Pull (UTC)",
+            value="Unknown",
+        )
+    st.markdown("---")
+
     st.markdown("## \U0001f50d SG AI Job Market Scout")
     st.caption("Understanding Singapore's AI job market through data")
     st.markdown("---")
