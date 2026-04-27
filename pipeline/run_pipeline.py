@@ -13,8 +13,8 @@ load_dotenv()
 
 from supabase import create_client
 
+from pipeline.classifier import ClassificationPipelineError, classify_unprocessed
 from pipeline.scrapers.mycareersfuture import MyCareersFutureScraper
-from pipeline.classifier import classify_unprocessed
 from pipeline.snapshot import generate_snapshot
 
 logging.basicConfig(
@@ -149,8 +149,12 @@ def main():
     try:
         classified_count = classify_unprocessed(client)
         logger.info(f"Classified {classified_count} new listings")
+    except ClassificationPipelineError as e:
+        logger.error(f"Classification failed: {e}")
+        sys.exit(1)
     except Exception as e:
         logger.error(f"Classification failed: {e}")
+        sys.exit(1)
 
     # --- Phase C: Snapshot ---
     logger.info("--- PHASE C: Snapshot ---")
@@ -162,6 +166,7 @@ def main():
         )
     except Exception as e:
         logger.error(f"Snapshot generation failed: {e}")
+        sys.exit(1)
 
     logger.info("=" * 60)
     logger.info("Pipeline complete")

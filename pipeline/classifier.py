@@ -9,8 +9,23 @@ from pipeline.skills_normalizer import normalize_skills
 
 logger = logging.getLogger(__name__)
 
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
-CLASSIFIER_MODEL = os.environ.get("OPENAI_CLASSIFIER_MODEL", "gpt-5-nano")
+
+def _get_required_env(name: str, default: str | None = None) -> str:
+    value = (os.environ.get(name) or "").strip()
+    if value:
+        return value
+    if default is not None:
+        return default
+    raise RuntimeError(f"{name} must be set")
+
+
+OPENAI_API_KEY = _get_required_env("OPENAI_API_KEY")
+CLASSIFIER_MODEL = _get_required_env("OPENAI_CLASSIFIER_MODEL", "gpt-5-nano")
+client = OpenAI(api_key=OPENAI_API_KEY)
+
+
+class ClassificationPipelineError(RuntimeError):
+    """Raised when classification cannot safely continue."""
 
 SYSTEM_PROMPT = (
     "You are a job market analyst specializing in AI, data, and analytics roles "
@@ -99,7 +114,7 @@ def _enforce_enums(result: dict) -> dict:
     return result
 
 
-def classify_unprocessed(supabase_client) -> int:
+def classify_unprocessed(supabase_client, limit: int | None = None) -> int:
     """Find and classify listings not yet in classified_listings."""
     # Get already-classified listing IDs
     classified_resp = (
@@ -128,6 +143,16 @@ def classify_unprocessed(supabase_client) -> int:
     # Filter to unclassified
     unclassified = [r for r in all_raw if r["id"] not in classified_ids]
     logger.info(f"Found {len(unclassified)} unclassified listings")
+    logger.info(f"Using classifier model: {CLASSIFIER_MODEL}")
+
+    if not unclassified:
+        return 0
+
+    if limit is not None:
+        if limit <= 0:
+            raise ValueError("limit must be positive when provided")
+        unclassified = unclassified[:limit]
+        logger.info(f"Processing {len(unclassified)} listings in this run (limit={limit})")
 
     count = 0
     consecutive_failures = 0
@@ -140,20 +165,22 @@ def classify_unprocessed(supabase_client) -> int:
             )
         except APIError as e:
             if e.code == "insufficient_quota":
-                logger.error(
+                message = (
                     f"Quota exhausted after classifying {count} listings. "
                     f"{len(unclassified) - count} remain."
                 )
-                break
+                logger.error(message)
+                raise ClassificationPipelineError(message) from e
             result = None
 
         if result is None:
             consecutive_failures += 1
             if consecutive_failures >= 5:
-                logger.error(
+                message = (
                     f"5 consecutive failures — stopping. Classified {count} so far."
                 )
-                break
+                logger.error(message)
+                raise ClassificationPipelineError(message)
             continue
 
         consecutive_failures = 0
