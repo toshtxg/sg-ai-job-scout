@@ -131,7 +131,7 @@ def classify_unprocessed(supabase_client, limit: int | None = None) -> int:
     while True:
         resp = (
             supabase_client.table("raw_listings")
-            .select("id, title, company, description")
+            .select("id, title, company, description, posting_date, scraped_at")
             .range(offset, offset + page_size - 1)
             .execute()
         )
@@ -142,6 +142,14 @@ def classify_unprocessed(supabase_client, limit: int | None = None) -> int:
 
     # Filter to unclassified
     unclassified = [r for r in all_raw if r["id"] not in classified_ids]
+    unclassified.sort(
+        key=lambda row: (
+            row.get("posting_date") or "",
+            row.get("scraped_at") or "",
+            row["id"],
+        ),
+        reverse=True,
+    )
     logger.info(f"Found {len(unclassified)} unclassified listings")
     logger.info(f"Using classifier model: {CLASSIFIER_MODEL}")
 
