@@ -117,16 +117,23 @@ def _enforce_enums(result: dict) -> dict:
 def classify_unprocessed(supabase_client, limit: int | None = None) -> int:
     """Find and classify listings not yet in classified_listings."""
     # Get already-classified listing IDs
-    classified_resp = (
-        supabase_client.table("classified_listings")
-        .select("listing_id")
-        .execute()
-    )
-    classified_ids = {row["listing_id"] for row in classified_resp.data}
+    classified_ids = set()
+    page_size = 1000
+    offset = 0
+    while True:
+        classified_resp = (
+            supabase_client.table("classified_listings")
+            .select("listing_id")
+            .range(offset, offset + page_size - 1)
+            .execute()
+        )
+        classified_ids.update(row["listing_id"] for row in classified_resp.data)
+        if len(classified_resp.data) < page_size:
+            break
+        offset += page_size
 
     # Get all raw listings, paginating if needed
     all_raw = []
-    page_size = 1000
     offset = 0
     while True:
         resp = (
@@ -160,7 +167,9 @@ def classify_unprocessed(supabase_client, limit: int | None = None) -> int:
         if limit <= 0:
             raise ValueError("limit must be positive when provided")
         unclassified = unclassified[:limit]
-        logger.info(f"Processing {len(unclassified)} listings in this run (limit={limit})")
+        logger.info(
+            f"Processing {len(unclassified)} listings in this run (limit={limit})"
+        )
 
     count = 0
     consecutive_failures = 0
