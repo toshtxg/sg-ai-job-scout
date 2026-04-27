@@ -4,7 +4,7 @@ Backfill unclassified raw listings into classified_listings.
 
 Examples:
   python -m pipeline.backfill_unclassified --limit 100
-  python -m pipeline.backfill_unclassified --limit 250 --refresh-snapshot
+  python -m pipeline.backfill_unclassified --limit 250 --batch-size 10 --refresh-snapshot
 """
 import argparse
 import logging
@@ -39,6 +39,12 @@ def parse_args() -> argparse.Namespace:
         help="Maximum number of unclassified listings to process in this run.",
     )
     parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=None,
+        help="Number of listings to classify per OpenAI request.",
+    )
+    parser.add_argument(
         "--refresh-snapshot",
         action="store_true",
         help="Rebuild today's market snapshot after classification completes.",
@@ -57,7 +63,11 @@ def main() -> None:
 
     client = create_client(url, key)
     logger.info("Starting manual backfill")
-    classified_count = classify_unprocessed(client, limit=args.limit)
+    classified_count = classify_unprocessed(
+        client,
+        limit=args.limit,
+        batch_size=args.batch_size,
+    )
     logger.info(f"Backfill classified {classified_count} listings")
 
     if args.refresh_snapshot:

@@ -99,6 +99,8 @@ pip install -e .
 
 Go to your [Supabase Dashboard](https://supabase.com/dashboard) → SQL Editor → paste the contents of `sql/schema.sql` and run.
 
+If you already have a live database, run `sql/migrations/2026-04-27-classified-listings-uniqueness.sql` first to deduplicate `classified_listings` and enforce one row per `listing_id`.
+
 ### 3. Set environment variables
 
 ```bash
@@ -109,6 +111,12 @@ export OPENAI_API_KEY="sk-your-key"
 
 Or create a `.env` file (see `.env.example`).
 
+Optional tuning:
+
+```bash
+export OPENAI_CLASSIFIER_BATCH_SIZE="10"
+```
+
 ### 4. Run the pipeline
 
 ```bash
@@ -116,6 +124,12 @@ python -m pipeline.run_pipeline
 ```
 
 Scrapes jobs, classifies with GPT-5-nano by default, generates a market snapshot. Subsequent runs only process new/unclassified listings.
+
+For manual backlog recovery:
+
+```bash
+python -m pipeline.backfill_unclassified --limit 250 --batch-size 10 --refresh-snapshot
+```
 
 ### 5. Launch the dashboard
 

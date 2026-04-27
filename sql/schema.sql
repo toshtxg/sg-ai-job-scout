@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS raw_listings (
 
 CREATE TABLE IF NOT EXISTS classified_listings (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    listing_id UUID REFERENCES raw_listings(id) ON DELETE CASCADE,
+    listing_id UUID NOT NULL UNIQUE REFERENCES raw_listings(id) ON DELETE CASCADE,
     role_category TEXT,
     seniority_level TEXT,
     technical_skills TEXT[],
