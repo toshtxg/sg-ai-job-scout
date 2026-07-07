@@ -3,18 +3,26 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  Activity,
   BarChart3,
+  Brain,
   Building2,
   BriefcaseBusiness,
+  Layers,
   LayoutDashboard,
   Search,
+  TrendingUp,
 } from "lucide-react";
 import { useState, type MouseEvent, type ReactNode } from "react";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/trends", label: "Trends", icon: TrendingUp },
   { href: "/jobs", label: "Job Explorer", icon: Search },
   { href: "/companies", label: "Companies", icon: Building2 },
+  { href: "/roles", label: "Roles", icon: Layers },
+  { href: "/ai-skills", label: "AI Skills", icon: Brain },
+  { href: "/market-pulse", label: "Market Pulse", icon: Activity },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {

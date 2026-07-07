@@ -2,7 +2,7 @@ import { compactListingsForClient, loadClassifiedListings } from "@/lib/data";
 import { JobsForYou } from "@/components/jobs-for-you";
 import { PageHeader } from "@/components/ui";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 900;
 
 export default async function JobsForYouPage() {
   const listings = compactListingsForClient(await loadClassifiedListings());

@@ -2,9 +2,12 @@
 
 import { useSyncExternalStore } from "react";
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
+  Legend,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -13,6 +16,7 @@ import {
   YAxis,
 } from "recharts";
 import { ROLE_COLORS } from "@/lib/constants";
+import type { SalaryTrendPoint, SnapshotTotalsPoint } from "@/lib/market";
 import type { ChartDatum, PostingTrendPoint } from "@/lib/types";
 
 const axis = { fill: "#a1a1aa", fontSize: 12 };
@@ -110,6 +114,130 @@ export function PostingTrend({ data }: { data: PostingTrendPoint[] }) {
             stroke={ROLE_COLORS[0]}
             strokeWidth={2}
             dot={false}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+export function SnapshotTotalsArea({ data }: { data: SnapshotTotalsPoint[] }) {
+  const mounted = useMounted();
+  if (!mounted) return <ChartFallback height={300} />;
+  return (
+    <div className="h-[300px] w-full">
+      <ResponsiveContainer>
+        <AreaChart data={data} margin={{ left: 8, right: 16, top: 8, bottom: 8 }}>
+          <CartesianGrid stroke={grid} vertical={false} />
+          <XAxis dataKey="label" tick={axis} />
+          <YAxis tick={axis} />
+          <Tooltip
+            contentStyle={{ background: "#181a20", border: "1px solid #30343d" }}
+          />
+          <Area
+            type="monotone"
+            dataKey="total"
+            name="Tracked listings"
+            stroke={ROLE_COLORS[0]}
+            fill={ROLE_COLORS[0]}
+            fillOpacity={0.18}
+            strokeWidth={2}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+export function NewListingsLine({ data }: { data: SnapshotTotalsPoint[] }) {
+  const mounted = useMounted();
+  if (!mounted) return <ChartFallback height={300} />;
+  return (
+    <div className="h-[300px] w-full">
+      <ResponsiveContainer>
+        <LineChart data={data} margin={{ left: 8, right: 16, top: 8, bottom: 8 }}>
+          <CartesianGrid stroke={grid} vertical={false} />
+          <XAxis dataKey="label" tick={axis} />
+          <YAxis tick={axis} />
+          <Tooltip
+            contentStyle={{ background: "#181a20", border: "1px solid #30343d" }}
+          />
+          <Line
+            type="monotone"
+            dataKey="newListings"
+            name="New listings (7d window)"
+            stroke={ROLE_COLORS[1]}
+            strokeWidth={2}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+export function RoleMixArea({
+  data,
+  roles,
+}: {
+  data: Record<string, string | number>[];
+  roles: string[];
+}) {
+  const mounted = useMounted();
+  if (!mounted) return <ChartFallback height={360} />;
+  return (
+    <div className="h-[360px] w-full">
+      <ResponsiveContainer>
+        <AreaChart data={data} margin={{ left: 8, right: 16, top: 8, bottom: 8 }}>
+          <CartesianGrid stroke={grid} vertical={false} />
+          <XAxis dataKey="label" tick={axis} />
+          <YAxis tick={axis} unit="%" domain={[0, 100]} />
+          <Tooltip
+            formatter={(value) => `${value}%`}
+            contentStyle={{ background: "#181a20", border: "1px solid #30343d" }}
+          />
+          <Legend wrapperStyle={{ fontSize: 12, color: "#a1a1aa" }} />
+          {roles.map((role, index) => (
+            <Area
+              key={role}
+              type="monotone"
+              dataKey={role}
+              stackId="mix"
+              stroke={ROLE_COLORS[index % ROLE_COLORS.length]}
+              fill={ROLE_COLORS[index % ROLE_COLORS.length]}
+              fillOpacity={0.32}
+              strokeWidth={1.5}
+            />
+          ))}
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+export function SalaryTrendLine({ data }: { data: SalaryTrendPoint[] }) {
+  const mounted = useMounted();
+  if (!mounted) return <ChartFallback height={300} />;
+  return (
+    <div className="h-[300px] w-full">
+      <ResponsiveContainer>
+        <LineChart data={data} margin={{ left: 8, right: 16, top: 8, bottom: 8 }}>
+          <CartesianGrid stroke={grid} vertical={false} />
+          <XAxis dataKey="label" tick={axis} />
+          <YAxis
+            tick={axis}
+            tickFormatter={(value: number) => `$${value.toLocaleString()}`}
+            width={72}
+          />
+          <Tooltip
+            formatter={(value) => `SGD ${Number(value).toLocaleString()}/mo`}
+            contentStyle={{ background: "#181a20", border: "1px solid #30343d" }}
+          />
+          <Line
+            type="monotone"
+            dataKey="midpoint"
+            name="Avg posted midpoint"
+            stroke={ROLE_COLORS[2]}
+            strokeWidth={2}
           />
         </LineChart>
       </ResponsiveContainer>

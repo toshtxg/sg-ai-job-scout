@@ -24,7 +24,7 @@ import {
 } from "@/components/salary-distribution";
 import { Badge, EmptyState, MetricCard, PageHeader, Panel, SectionTitle } from "@/components/ui";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 900;
 
 export default async function DashboardPage() {
   const [listings, latestPull] = await Promise.all([

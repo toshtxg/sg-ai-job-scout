@@ -2,7 +2,7 @@
 
 import type { MarketPulseData } from "@/lib/market";
 import { HorizontalBars, VerticalBars } from "@/components/charts";
-import { MetricCard, Panel, SectionTitle } from "@/components/ui";
+import { EmptyState, MetricCard, Panel, SectionTitle } from "@/components/ui";
 
 export function MarketPulse({ data }: { data: MarketPulseData }) {
   return (
@@ -15,12 +15,20 @@ export function MarketPulse({ data }: { data: MarketPulseData }) {
       </div>
       <div className="grid gap-4 xl:grid-cols-2">
         <Panel>
-          <SectionTitle>Most In-Demand Skills</SectionTitle>
-          <VerticalBars data={data.topSkills} />
+          <SectionTitle>Skills In AI-Exposed Roles</SectionTitle>
+          {data.topSkills.length ? (
+            <VerticalBars data={data.topSkills} />
+          ) : (
+            <EmptyState>No skill data for AI-exposed listings yet.</EmptyState>
+          )}
         </Panel>
         <Panel>
           <SectionTitle>Industry AI Adoption</SectionTitle>
-          <HorizontalBars data={data.industries} />
+          {data.industries.length ? (
+            <HorizontalBars data={data.industries} />
+          ) : (
+            <EmptyState>No industry data for AI-exposed listings yet.</EmptyState>
+          )}
         </Panel>
       </div>
     </div>

@@ -3,7 +3,9 @@ import { unstable_cache } from "next/cache";
 import type { ClassifiedListing, MarketSnapshot, RawListing } from "@/lib/types";
 
 type SupabaseClassifiedRow = Omit<ClassifiedListing, "raw">;
-type SupabaseRawRow = RawListing & { id: string };
+type EmbeddedClassifiedRow = SupabaseClassifiedRow & {
+  raw_listings: RawListing | RawListing[] | null;
+};
 
 let client: SupabaseClient | null = null;
 
@@ -70,10 +72,24 @@ function normalizeClassifiedRow(
   return normalized;
 }
 
-async function fetchClassifiedRows(supabase: SupabaseClient, limit?: number) {
+async function loadClassifiedListingsUncached(
+  includeDescription: boolean,
+  limit: number | null,
+) {
+  const supabase = getSupabaseClient();
+
+  // Single paginated query that pulls each classified row together with its
+  // related raw listing via a PostgREST embedded join (mirrors the embed the
+  // pipeline's snapshot.py uses). This replaces the previous two-phase fetch
+  // that scanned the entire raw_listings table when there were >1000 ids.
+  const rawEmbed = includeDescription
+    ? "raw_listings!listing_id(title,company,description,salary_min,salary_max,salary_currency,source_url,posting_date,scraped_at)"
+    : "raw_listings!listing_id(title,company,salary_min,salary_max,salary_currency,source_url,posting_date,scraped_at)";
+  const select = `id,listing_id,role_category,seniority_level,technical_skills,soft_skills,domain_knowledge,requires_ai_ml,remote_hybrid_onsite,industry,classified_at,model_used,${rawEmbed}`;
+
   const pageSize = 1000;
   let offset = 0;
-  const rows: SupabaseClassifiedRow[] = [];
+  const rows: EmbeddedClassifiedRow[] = [];
 
   while (true) {
     const nextPageSize = limit ? Math.min(pageSize, limit - rows.length) : pageSize;
@@ -81,87 +97,21 @@ async function fetchClassifiedRows(supabase: SupabaseClient, limit?: number) {
 
     const { data, error } = await supabase
       .from("classified_listings")
-      .select(
-        "id,listing_id,role_category,seniority_level,technical_skills,soft_skills,domain_knowledge,requires_ai_ml,remote_hybrid_onsite,industry,classified_at,model_used",
-      )
+      .select(select)
       .order("classified_at", { ascending: false })
       .range(offset, offset + nextPageSize - 1);
 
     if (error) throw new Error(error.message);
-    rows.push(...((data || []) as SupabaseClassifiedRow[]));
+    rows.push(...((data || []) as unknown as EmbeddedClassifiedRow[]));
     if (!data || data.length < nextPageSize) break;
     offset += data.length;
   }
 
-  return rows;
-}
-
-async function fetchRawListings(
-  supabase: SupabaseClient,
-  listingIds: string[],
-  includeDescription: boolean,
-) {
-  const rawFields = includeDescription
-    ? "id,title,company,description,salary_min,salary_max,salary_currency,source_url,posting_date,scraped_at"
-    : "id,title,company,salary_min,salary_max,salary_currency,source_url,posting_date,scraped_at";
-  const rawById = new Map<string, RawListing>();
-
-  if (listingIds.length > 1000) {
-    const wantedIds = new Set(listingIds);
-    const pageSize = includeDescription ? 500 : 1000;
-
-    for (let offset = 0; ; offset += pageSize) {
-      const { data, error } = await supabase
-        .from("raw_listings")
-        .select(rawFields)
-        .range(offset, offset + pageSize - 1);
-
-      if (error) throw new Error(error.message);
-      for (const raw of (data || []) as unknown as SupabaseRawRow[]) {
-        if (wantedIds.has(raw.id)) rawById.set(raw.id, raw);
-      }
-      if (!data || data.length < pageSize || rawById.size >= wantedIds.size) break;
-    }
-
-    return rawById;
-  }
-
-  const chunkSize = includeDescription ? 40 : 80;
-
-  for (let index = 0; index < listingIds.length; index += chunkSize) {
-    const chunk = listingIds.slice(index, index + chunkSize);
-    const { data, error } = await supabase
-      .from("raw_listings")
-      .select(rawFields)
-      .in("id", chunk);
-
-    if (error) throw new Error(error.message);
-    for (const raw of (data || []) as unknown as SupabaseRawRow[]) {
-      rawById.set(raw.id, raw);
-    }
-  }
-
-  return rawById;
-}
-
-async function loadClassifiedListingsUncached(
-  includeDescription: boolean,
-  limit: number | null,
-) {
-  const supabase = getSupabaseClient();
-  const classifiedRows = await fetchClassifiedRows(supabase, limit ?? undefined);
-  const listingIds = [
-    ...new Set(classifiedRows.map((row) => row.listing_id).filter(Boolean) as string[]),
-  ];
-  const rawById = await fetchRawListings(supabase, listingIds, includeDescription);
-
-  return classifiedRows.map((row) =>
-    normalizeClassifiedRow(
-      row,
-      row.listing_id ? rawById.get(row.listing_id) : null,
-      includeDescription,
-    ),
-  );
+  return rows.map((row) => {
+    const { raw_listings, ...classified } = row;
+    const raw = Array.isArray(raw_listings) ? raw_listings[0] : raw_listings;
+    return normalizeClassifiedRow(classified, raw, includeDescription);
+  });
 }
 
 const loadClassifiedListingsCached = unstable_cache(

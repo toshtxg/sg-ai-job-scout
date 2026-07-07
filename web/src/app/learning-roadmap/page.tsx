@@ -2,7 +2,7 @@ import { compactListingsForClient, loadClassifiedListings } from "@/lib/data";
 import { LearningRoadmap } from "@/components/learning-roadmap";
 import { PageHeader } from "@/components/ui";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 900;
 
 export default async function LearningRoadmapPage() {
   const listings = compactListingsForClient(await loadClassifiedListings());

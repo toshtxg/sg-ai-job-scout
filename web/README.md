@@ -23,10 +23,24 @@ This is the live product surface. The repository's older Streamlit app is legacy
 | Route | Purpose |
 |-------|---------|
 | `/` | Dashboard with market metrics, role mix, salary distribution, skills, new listings, and posting trend |
+| `/trends` | Market trends over time from daily `market_snapshots`: tracked/new listings, role mix evolution, skill momentum (rising vs declining skills), and salary trend per role |
 | `/jobs` | Filterable job explorer with direct MyCareersFuture links |
 | `/companies` | Company leaderboard, company profiles, posting history, role mix, skill mix, and recent listings |
+| `/roles` | Role taxonomy, skill mix, seniority skill progression, and posted-salary percentiles (p25/median/p75) by role and seniority |
+| `/ai-skills` | AI skills deep dive: taxonomy categories, keyword demand, and career tiers |
+| `/market-pulse` | AI-vs-non-AI salary premium, skills in AI-exposed roles, and industry AI adoption |
 
-Additional analysis routes exist in the app directory, but the production navigation is focused on the routes above.
+Two additional analysis routes (`/jobs-for-you`, `/learning-roadmap`) exist in the app directory but are intentionally left out of the navigation.
+
+## Caching
+
+Pages are served via ISR: each page exports `revalidate = 900`, and the Supabase
+loaders in `src/lib/data.ts` are wrapped in `unstable_cache` with the same 15-minute
+revalidation window. Pages are prerendered at build/revalidate time rather than
+rendering dynamically on every request, so a production build needs `SUPABASE_URL`
+and `SUPABASE_KEY` available at build time (Vercel provides them). A local build
+without `.env.local` compiles and type-checks but fails at the static prerender
+step with a missing-env error — that is expected.
 
 ## Local Development
 

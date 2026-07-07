@@ -8,6 +8,7 @@ import type {
   AiCategoryMatch,
   ChartDatum,
   ClassifiedListing,
+  MarketSnapshot,
   PostingTrendPoint,
 } from "@/lib/types";
 
@@ -262,7 +263,7 @@ export function buildMarketPulseData(listings: ClassifiedListing[]): MarketPulse
     aiSalary,
     nonAiSalary,
     premium,
-    topSkills: skillCounts(dataRows, 12),
+    topSkills: skillCounts(aiRows, 12),
     industries: topCounts(industryCounts, 12),
   };
 }
@@ -308,4 +309,206 @@ export function buildPostingTrend(
   }
 
   return points;
+}
+
+// ---------------------------------------------------------------------------
+// Market snapshot time series (powers the /trends page)
+// ---------------------------------------------------------------------------
+
+export function formatShortDate(value: string | null | undefined) {
+  const parsed = parseDate(value);
+  if (!parsed) return value || "-";
+  return new Intl.DateTimeFormat("en-SG", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(parsed);
+}
+
+function daysBetween(later: string, earlier: string) {
+  const a = parseDate(later);
+  const b = parseDate(earlier);
+  if (!a || !b) return 0;
+  return Math.round((a.getTime() - b.getTime()) / 86_400_000);
+}
+
+export type SnapshotTotalsPoint = {
+  date: string;
+  label: string;
+  total: number;
+  newListings: number;
+};
+
+export function buildSnapshotTotalsSeries(
+  snapshots: MarketSnapshot[],
+): SnapshotTotalsPoint[] {
+  return snapshots.map((snapshot) => ({
+    date: snapshot.snapshot_date,
+    label: formatShortDate(snapshot.snapshot_date),
+    total: snapshot.total_listings ?? 0,
+    newListings: snapshot.new_listings_count ?? 0,
+  }));
+}
+
+export type RoleMixSeries = {
+  data: Record<string, string | number>[];
+  roles: string[];
+};
+
+const ROLE_MIX_OTHER = "Other roles";
+
+export function buildRoleMixSeries(
+  snapshots: MarketSnapshot[],
+  topN = 6,
+): RoleMixSeries {
+  if (!snapshots.length) return { data: [], roles: [] };
+
+  // Rank roles by their share in the most recent snapshot (ignore the literal
+  // "Other" catch-all so the chart foregrounds real data/AI roles).
+  const latest = snapshots[snapshots.length - 1];
+  const latestRoles = Object.entries(latest.listings_by_role || {})
+    .filter(([role]) => role && role !== "Other")
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, topN)
+    .map(([role]) => role);
+
+  const roles = [...latestRoles, ROLE_MIX_OTHER];
+
+  const data = snapshots.map((snapshot) => {
+    const byRole = snapshot.listings_by_role || {};
+    const total = Object.values(byRole).reduce((sum, value) => sum + value, 0) || 1;
+    const point: Record<string, string | number> = {
+      date: snapshot.snapshot_date,
+      label: formatShortDate(snapshot.snapshot_date),
+    };
+    let accounted = 0;
+    for (const role of latestRoles) {
+      const share = Number((((byRole[role] || 0) / total) * 100).toFixed(1));
+      point[role] = share;
+      accounted += share;
+    }
+    point[ROLE_MIX_OTHER] = Number(Math.max(100 - accounted, 0).toFixed(1));
+    return point;
+  });
+
+  return { data, roles };
+}
+
+export type SkillMomentum = {
+  skill: string;
+  current: number;
+  previous: number;
+  delta: number;
+};
+
+export type SkillMomentumResult = {
+  rising: SkillMomentum[];
+  declining: SkillMomentum[];
+  latestDate: string | null;
+  baselineDate: string | null;
+  baselineIsEarliest: boolean;
+  windowDays: number;
+};
+
+function snapshotSkillMap(snapshot: MarketSnapshot | undefined) {
+  const map = new Map<string, number>();
+  for (const entry of snapshot?.top_skills || []) {
+    if (entry?.skill) map.set(entry.skill, entry.count ?? 0);
+  }
+  return map;
+}
+
+export function buildSkillMomentum(
+  snapshots: MarketSnapshot[],
+  windowDays = 30,
+  topN = 8,
+): SkillMomentumResult {
+  const withSkills = snapshots.filter((snapshot) => (snapshot.top_skills || []).length);
+  const empty: SkillMomentumResult = {
+    rising: [],
+    declining: [],
+    latestDate: null,
+    baselineDate: null,
+    baselineIsEarliest: false,
+    windowDays,
+  };
+  if (withSkills.length < 2) return empty;
+
+  const latest = withSkills[withSkills.length - 1];
+  // Prefer a baseline ~windowDays before the latest snapshot; otherwise the
+  // earliest snapshot we have skills for.
+  let baseline = withSkills
+    .slice(0, -1)
+    .filter((snapshot) => daysBetween(latest.snapshot_date, snapshot.snapshot_date) >= windowDays)
+    .at(-1);
+  const baselineIsEarliest = !baseline;
+  if (!baseline) baseline = withSkills[0];
+
+  const currentMap = snapshotSkillMap(latest);
+  const previousMap = snapshotSkillMap(baseline);
+  const skills = new Set([...currentMap.keys(), ...previousMap.keys()]);
+
+  const momentum: SkillMomentum[] = [...skills].map((skill) => {
+    const current = currentMap.get(skill) ?? 0;
+    const previous = previousMap.get(skill) ?? 0;
+    return { skill, current, previous, delta: current - previous };
+  });
+
+  const rising = momentum
+    .filter((item) => item.delta > 0)
+    .sort((a, b) => b.delta - a.delta)
+    .slice(0, topN);
+  const declining = momentum
+    .filter((item) => item.delta < 0)
+    .sort((a, b) => a.delta - b.delta)
+    .slice(0, topN);
+
+  return {
+    rising,
+    declining,
+    latestDate: latest.snapshot_date,
+    baselineDate: baseline.snapshot_date,
+    baselineIsEarliest,
+    windowDays,
+  };
+}
+
+export type SalaryTrendPoint = { date: string; label: string; midpoint: number };
+
+export type SalaryTrendByRole = {
+  roles: string[];
+  byRole: Record<string, SalaryTrendPoint[]>;
+};
+
+export function buildSalaryTrendByRole(
+  snapshots: MarketSnapshot[],
+): SalaryTrendByRole {
+  const byRole: Record<string, SalaryTrendPoint[]> = {};
+
+  for (const snapshot of snapshots) {
+    const salaries = snapshot.avg_salary_by_role || {};
+    for (const [role, value] of Object.entries(salaries)) {
+      if (!role || role === "Other" || !value) continue;
+      const min = toNumber(value.avg_min);
+      const max = toNumber(value.avg_max);
+      const midpoint =
+        min !== null && max !== null ? (min + max) / 2 : (max ?? min);
+      if (midpoint === null) continue;
+      if (!byRole[role]) byRole[role] = [];
+      byRole[role].push({
+        date: snapshot.snapshot_date,
+        label: formatShortDate(snapshot.snapshot_date),
+        midpoint: Math.round(midpoint),
+      });
+    }
+  }
+
+  // Order roles by how much salary history they carry, then by latest midpoint.
+  const roles = Object.keys(byRole).sort((a, b) => {
+    const byLength = byRole[b].length - byRole[a].length;
+    if (byLength !== 0) return byLength;
+    return (byRole[b].at(-1)?.midpoint ?? 0) - (byRole[a].at(-1)?.midpoint ?? 0);
+  });
+
+  return { roles, byRole };
 }
