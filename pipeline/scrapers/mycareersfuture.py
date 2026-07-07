@@ -11,6 +11,17 @@ MCF_API_BASE = "https://api.mycareersfuture.gov.sg/v2/jobs"
 MCF_PAGE_SIZE = 100
 
 
+def _parse_iso_date(raw_date) -> str | None:
+    """Parse an ISO datetime string into a YYYY-MM-DD date, or None."""
+    if not raw_date:
+        return None
+    try:
+        dt = datetime.fromisoformat(str(raw_date).replace("Z", "+00:00"))
+        return dt.strftime("%Y-%m-%d")
+    except (ValueError, TypeError):
+        return None
+
+
 class MyCareersFutureScraper(BaseScraper):
     """Scraper for MyCareersFuture.gov.sg JSON API."""
 
@@ -19,7 +30,13 @@ class MyCareersFutureScraper(BaseScraper):
     def __init__(self):
         super().__init__(delay=2.5)
 
-    def scrape(self, search_term: str, max_pages: int = 5) -> list[dict]:
+    def scrape(
+        self,
+        search_term: str,
+        max_pages: int = 5,
+        known_urls: set[str] | None = None,
+    ) -> list[dict]:
+        known = known_urls or set()
         jobs = []
         for page in range(max_pages):
             params = {
@@ -49,10 +66,18 @@ class MyCareersFutureScraper(BaseScraper):
             if not results:
                 break
 
+            new_this_page = 0
             for item in results:
                 job = self._parse_job(item)
                 if job:
                     jobs.append(job)
+                    if job["source_url"] not in known:
+                        new_this_page += 1
+
+            # Early stop: results are newest-first (sortBy=new_posting_date), so
+            # once a page contributes no unseen URLs, deeper pages are all known.
+            if new_this_page == 0:
+                break
 
             # Stop if we've fetched all available results
             total = data.get("total", 0)
@@ -105,6 +130,12 @@ class MyCareersFutureScraper(BaseScraper):
                     except (ValueError, TypeError):
                         continue
 
+            # Listing lifecycle dates — same ISO parsing as posting_date
+            expiry_date = _parse_iso_date(metadata.get("expiryDate"))
+            original_posting_date = _parse_iso_date(
+                metadata.get("originalPostingDate")
+            )
+
             # Job URL — build from uuid
             uuid = item.get("uuid", "")
             if not uuid:
@@ -152,6 +183,8 @@ class MyCareersFutureScraper(BaseScraper):
                 "uuid": uuid,
                 "min_experience": item.get("minimumYearsExperience"),
                 "job_post_id": metadata.get("jobPostId"),
+                "expiry_date": expiry_date,
+                "original_posting_date": original_posting_date,
             }
 
             return self.normalize_job(
@@ -164,6 +197,8 @@ class MyCareersFutureScraper(BaseScraper):
                 salary_max=salary_max,
                 posting_date=posting_date,
                 raw_data=raw_data,
+                expiry_date=expiry_date,
+                original_posting_date=original_posting_date,
             )
         except Exception as e:
             logger.error(f"[{self.source_name}] Error parsing job: {e}")

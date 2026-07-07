@@ -28,7 +28,7 @@ sg-data-jobs/
 │   └── src/lib/                  # Supabase loading, market helpers, taxonomy constants
 ├── pipeline/                     # Data pipeline shared by the app
 │   ├── scrapers/
-│   │   └── mycareersfuture.py    # MCF API scraper
+│   │   └── mycareersfuture.py    # MCF API scraper (newest-first with early-stop)
 │   ├── classifier.py             # GPT-5-nano structured classification
 │   ├── ai_skills_analyzer.py     # AI skills taxonomy
 │   ├── skills_normalizer.py      # Canonical skill name mapping
@@ -36,6 +36,7 @@ sg-data-jobs/
 │   └── run_pipeline.py           # Pipeline orchestrator
 ├── app/                          # Legacy Streamlit prototype, not the live solution
 ├── sql/schema.sql                # Database DDL for Supabase
+├── sql/migrations/               # Manual migrations (run in the Supabase SQL Editor)
 ├── .github/workflows/scrape.yml  # Automated scraping
 ├── pyproject.toml
 ├── requirements.txt
@@ -43,6 +44,13 @@ sg-data-jobs/
 ```
 
 **Data flow:** MyCareersFuture API -> Supabase (`raw_listings`) -> GPT-5-nano classifier -> Supabase (`classified_listings`) -> snapshot aggregation -> Next.js dashboard on Vercel.
+
+Pipeline optimizations:
+
+- **Scraper early-stop** - results are fetched newest-first (`sortBy=new_posting_date`); pagination for a search term stops as soon as a page contributes no unseen URLs, so nightly runs only page through what is actually new.
+- **Listing lifecycle tracking** - the scraper captures `expiry_date` and `original_posting_date` from MCF metadata, and every re-scraped listing gets its `last_seen_at`, expiry, posting date, and salary range refreshed instead of being skipped, keeping reposted/renewed listings fresh.
+- **DB-side classification anti-join** - unclassified listings are found with a PostgREST left-join null filter (`classified_listings=is.null`), so descriptions are only downloaded for listings that still need classification.
+- **Richer snapshots** - `market_snapshots` includes `salary_percentiles_by_role` (p25/p50/p75 of the listing salary midpoint per role) and `active_listings_count` (listings whose `expiry_date` is today or later).
 
 ## Production Pages
 
@@ -91,7 +99,12 @@ pip install -e .
 
 Go to your [Supabase Dashboard](https://supabase.com/dashboard) -> SQL Editor -> paste the contents of `sql/schema.sql` and run.
 
-If you already have a live database, run `sql/migrations/2026-04-27-classified-listings-uniqueness.sql` first to deduplicate `classified_listings` and enforce one row per `listing_id`.
+If you already have a live database, migrations are applied manually in the Supabase SQL Editor (they are never run automatically). Run these in order:
+
+1. `sql/migrations/2026-04-27-classified-listings-uniqueness.sql` - deduplicates `classified_listings` and enforces one row per `listing_id`
+2. `sql/migrations/2026-07-05-listing-lifecycle.sql` - adds `expiry_date`, `original_posting_date`, and `last_seen_at` to `raw_listings`, plus `salary_percentiles_by_role` and `active_listings_count` to `market_snapshots`
+
+Until the lifecycle migration is run, the pipeline logs a warning naming the file and falls back to writing without the new columns.
 
 ### 3. Set pipeline environment variables
 
@@ -115,7 +128,7 @@ export OPENAI_CLASSIFIER_BATCH_SIZE="10"
 python -m pipeline.run_pipeline
 ```
 
-Scrapes jobs, classifies with GPT-5-nano by default, and generates a market snapshot. Subsequent runs only process new or unclassified listings.
+Scrapes jobs, classifies with GPT-5-nano by default, and generates a market snapshot. Subsequent runs only process new or unclassified listings: the scraper stops paginating a search term once a page contains only already-known URLs, known listings get their lifecycle fields refreshed rather than re-inserted, and the classifier fetches only unclassified rows from the database.
 
 For manual backlog recovery:
 
@@ -168,7 +181,7 @@ OPENAI_SUMMARY_MODEL
 
 ## GitHub Actions
 
-The pipeline runs automatically every day at 2 AM UTC.
+The pipeline runs automatically every day at 2 AM UTC. The workflow has a 45-minute job timeout, a concurrency group so runs never overlap (a queued run waits instead of cancelling an in-flight one), and pip caching for faster installs.
 
 1. Go to the GitHub repo -> Settings -> Secrets and variables -> Actions
 2. Add repository secrets: `SUPABASE_URL`, `SUPABASE_KEY`, `OPENAI_API_KEY`

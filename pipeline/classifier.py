@@ -295,13 +295,46 @@ def _enforce_enums(result: dict) -> dict:
     return result
 
 
-def classify_unprocessed(
-    supabase_client, limit: int | None = None, batch_size: int | None = None
-) -> int:
-    """Find and classify listings not yet in classified_listings."""
-    # Get already-classified listing IDs
+def _fetch_unclassified_antijoin(supabase_client, page_size: int = 1000) -> list[dict]:
+    """Fetch unclassified raw listings via a DB-side anti-join.
+
+    Uses a left-join embed of classified_listings and a PostgREST null filter
+    (`classified_listings=is.null`) so descriptions are only ever downloaded for
+    listings that still need classification.
+    """
+    rows: list[dict] = []
+    offset = 0
+    while True:
+        resp = (
+            supabase_client.table("raw_listings")
+            .select(
+                "id, title, company, description, posting_date, scraped_at, "
+                "classified_listings!left(listing_id)"
+            )
+            .is_("classified_listings", "null")
+            .order("posting_date", desc=True)
+            .order("scraped_at", desc=True)
+            .order("id", desc=True)
+            .range(offset, offset + page_size - 1)
+            .execute()
+        )
+        for row in resp.data:
+            row.pop("classified_listings", None)
+            rows.append(row)
+        if len(resp.data) < page_size:
+            break
+        offset += page_size
+    return rows
+
+
+def _fetch_unclassified_fallback(supabase_client, page_size: int = 1000) -> list[dict]:
+    """Client-side anti-join fallback used if the embed-null filter is unsupported.
+
+    Fetches classified ids and raw ids first, then pulls descriptions only for
+    the unclassified ids via chunked `.in_()` — still avoiding a full download
+    of every listing's description.
+    """
     classified_ids = set()
-    page_size = 1000
     offset = 0
     while True:
         classified_resp = (
@@ -315,23 +348,50 @@ def classify_unprocessed(
             break
         offset += page_size
 
-    # Get all raw listings, paginating if needed
-    all_raw = []
+    raw_ids = []
     offset = 0
     while True:
         resp = (
             supabase_client.table("raw_listings")
-            .select("id, title, company, description, posting_date, scraped_at")
+            .select("id")
             .range(offset, offset + page_size - 1)
             .execute()
         )
-        all_raw.extend(resp.data)
+        raw_ids.extend(row["id"] for row in resp.data)
         if len(resp.data) < page_size:
             break
         offset += page_size
 
-    # Filter to unclassified
-    unclassified = [r for r in all_raw if r["id"] not in classified_ids]
+    unclassified_ids = [i for i in raw_ids if i not in classified_ids]
+    if not unclassified_ids:
+        return []
+
+    rows: list[dict] = []
+    chunk_size = 500
+    for i in range(0, len(unclassified_ids), chunk_size):
+        ids = unclassified_ids[i : i + chunk_size]
+        resp = (
+            supabase_client.table("raw_listings")
+            .select("id, title, company, description, posting_date, scraped_at")
+            .in_("id", ids)
+            .execute()
+        )
+        rows.extend(resp.data)
+    return rows
+
+
+def classify_unprocessed(
+    supabase_client, limit: int | None = None, batch_size: int | None = None
+) -> int:
+    """Find and classify listings not yet in classified_listings."""
+    try:
+        unclassified = _fetch_unclassified_antijoin(supabase_client)
+    except Exception as e:
+        logger.warning(
+            "Anti-join fetch failed (%s); falling back to client-side diff", e
+        )
+        unclassified = _fetch_unclassified_fallback(supabase_client)
+
     unclassified.sort(
         key=lambda row: (
             row.get("posting_date") or "",

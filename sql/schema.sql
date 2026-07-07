@@ -12,7 +12,10 @@ CREATE TABLE IF NOT EXISTS raw_listings (
     salary_max NUMERIC,
     salary_currency TEXT DEFAULT 'SGD',
     posting_date DATE,
+    expiry_date DATE,
+    original_posting_date DATE,
     scraped_at TIMESTAMPTZ DEFAULT NOW(),
+    last_seen_at TIMESTAMPTZ DEFAULT NOW(),
     raw_data JSONB
 );
 
@@ -40,6 +43,8 @@ CREATE TABLE IF NOT EXISTS market_snapshots (
     top_skills JSONB,
     avg_salary_by_role JSONB,
     new_listings_count INTEGER,
+    salary_percentiles_by_role JSONB,
+    active_listings_count INTEGER,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
